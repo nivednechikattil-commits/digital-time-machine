@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Evidence Explorer & Ingestion — {{ metrics.case.name if metrics.case else 'Forensics' }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Evidence Explorer & Ingestion Engine</h1>
+        <p class="page-subtitle">Safe, validated forensic ingestion with SHA-256 integrity baseline and schema verification</p>
+    </div>
+</div>
+
+<!-- Integrity Disclaimer Banner -->
+<div class="card" style="border-left: 4px solid #10B981; background: rgba(16, 185, 129, 0.05); margin-bottom: 24px;">
+    <div style="display: flex; gap: 12px; align-items: flex-start;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        </svg>
+        <div style="font-size: 12px; line-height: 1.6; color: var(--text-secondary);">
+            <strong style="color: #10B981;">Chain-of-Custody & Integrity Principle:</strong>
+            Digital Time Machine computes a cryptographic SHA-256 hash immediately upon file receipt.
+            This hash establishes a reliable reference point for subsequent internal consistency checks; it does <em>not</em> prove
+            the origin, authenticity, or chain-of-custody prior to ingestion. Original raw evidence files are stored immutable and unmodified.
+        </div>
+    </div>
+</div>
+
+<!-- Upload & Safe Import Section -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+    <!-- Ingestion Form -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                Upload Compatible Forensic Evidence (CSV / JSON)
+            </span>
+            <span class="pill pill-observed">Max 16MB</span>
+        </div>
+        <form id="uploadEvidenceForm" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 14px;">
+            <div>
+                <label for="evidenceFile" style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Select File:</label>
+                <input type="file" id="evidenceFile" name="file" accept=".csv,.json" class="btn btn-outline" style="width: 100%; margin-top: 4px; padding: 10px;">
+            </div>
+
+            <!-- Upload Preview Area -->
+            <div id="filePreviewArea" style="display: none; background-color: var(--bg-surface-elevated); padding: 10px; border-radius: 4px; font-size: 11px;">
+                <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">File Preview: <span id="previewFilename" class="mono"></span></div>
+                <div style="color: var(--text-secondary);">Size: <span id="previewSize" class="mono"></span> bytes</div>
+                <div style="margin-top: 6px; max-height: 80px; overflow-y: auto; font-family: var(--font-mono); color: var(--accent-cyan); white-space: pre-wrap;" id="previewSnippet"></div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="submit" class="btn btn-primary" id="btnUploadSubmit">
+                    Verify & Ingest Evidence
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Ingestion Diagnostics / Results Box -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Ingestion Diagnostics</span>
+            <span id="diagnosticStatus" class="pill pill-observed">Ready</span>
+        </div>
+        <div id="diagnosticResults" style="font-size: 12px; color: var(--text-secondary); line-height: 1.6;">
+            <p>Upload a file or inspect existing evidence artifacts below. The engine will parse, validate timestamps, sanitize fields, prevent duplicate hashes, and correlate new events.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Imported Evidence Files Table -->
+<div class="card">
+    <div class="card-header">
+        <span class="card-title">Ingested Evidence Files ({{ files|length }})</span>
+        <span class="pill pill-observed">Immutable Artifacts</span>
+    </div>
+    <div class="table-container">
+        <table class="dtm-table">
+            <thead>
+                <tr>
+                    <th>Filename</th>
+                    <th>Type</th>
+                    <th>SHA-256 Cryptographic Hash</th>
+                    <th>Total Records</th>
+                    <th>Accepted</th>
+                    <th>Rejected</th>
+                    <th>Imported At</th>
+                    <th>File Size</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in files %}
+                <tr>
+                    <td class="mono" style="font-weight: 600; color: var(--text-primary);">{{ f.original_filename }}</td>
+                    <td><span class="pill pill-observed">{{ f.file_type }}</span></td>
+                    <td class="mono" style="font-size: 10px; color: var(--accent-cyan); max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="{{ f.sha256_hash }}">
+                        {{ f.sha256_hash }}
+                    </td>
+                    <td class="mono">{{ f.record_count }}</td>
+                    <td class="mono" style="color: var(--sev-low); font-weight: 700;">{{ f.valid_count }}</td>
+                    <td class="mono" style="color: {{ 'var(--sev-critical)' if f.invalid_count > 0 else 'var(--text-muted)' }}; font-weight: 700;">{{ f.invalid_count }}</td>
+                    <td class="mono" style="font-size: 11px;">{{ f.imported_at }}</td>
+                    <td class="mono" style="font-size: 11px;">{{ (f.file_size_bytes / 1024)|round(1) }} KB</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 30px;">No evidence files currently ingested.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/evidence.js"></script>
+{% endblock %}
+

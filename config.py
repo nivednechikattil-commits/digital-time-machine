@@ -1,0 +1,19 @@
+"""
+Configuration settings for Digital Time Machine.
+"""
+
+import os
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
+
+class Config:
+    SECRET_KEY = os.environ.get("SECRET_KEY", "dtm-hackathon-insecure-dev-key-track03")
+    DATABASE_PATH = os.environ.get("DATABASE_PATH", str(BASE_DIR / "digital_time_machine.db"))
+    UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", str(BASE_DIR / "uploads"))
+    DEMO_DATA_DIR = str(BASE_DIR / "data" / "demo")
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16 MB max upload limit
+    ALLOWED_EXTENSIONS = {"csv", "json"}
+    DEMO_CASE_ID = "CASE-2026-001"
+    DEMO_CASE_NAME = "The Missing Customer Database"
+

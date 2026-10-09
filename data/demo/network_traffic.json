@@ -1,0 +1,57 @@
+[
+  {
+    "id": "EVT-040",
+    "timestamp": "2026-10-07T10:04:31",
+    "source": "network",
+    "event_type": "NETWORK_CONNECTION",
+    "actor": "alice",
+    "object": "198.51.100.15",
+    "severity": "low",
+    "description": "Outbound HTTP connection to training host 198.51.100.15:80",
+    "evidence_ref": "firewall_flows.json",
+    "confidence": "observed",
+    "details": {
+      "destination_port": 80,
+      "protocol": "TCP",
+      "bytes_transferred": 1420,
+      "hostname": "secure-update-training.internal-demo.local"
+    }
+  },
+  {
+    "id": "EVT-041",
+    "timestamp": "2026-10-07T10:16:00",
+    "source": "network",
+    "event_type": "NETWORK_TRANSFER",
+    "actor": "alice",
+    "object": "198.51.100.42",
+    "severity": "critical",
+    "description": "High-volume outbound encrypted TLS session to external IP 198.51.100.42:8443",
+    "evidence_ref": "firewall_flows.json",
+    "confidence": "observed",
+    "details": {
+      "destination_port": 8443,
+      "protocol": "TCP/TLS",
+      "bytes_transferred": 45200000,
+      "direction": "outbound",
+      "flow_duration_sec": 42
+    }
+  },
+  {
+    "id": "EVT-042",
+    "timestamp": "2026-10-07T10:25:00",
+    "source": "network",
+    "event_type": "NETWORK_CONNECTION",
+    "actor": "bob",
+    "object": "10.0.0.5",
+    "severity": "low",
+    "description": "Internal DNS lookup query to domain controller 10.0.0.5:53",
+    "evidence_ref": "firewall_flows.json",
+    "confidence": "observed",
+    "details": {
+      "destination_port": 53,
+      "protocol": "UDP",
+      "bytes_transferred": 128
+    }
+  }
+]
+

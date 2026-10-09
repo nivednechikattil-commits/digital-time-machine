@@ -1,0 +1,7 @@
+id,timestamp,source,event_type,actor,object,severity,description,evidence_ref,confidence
+EVT-020,2026-10-07T10:05:00,file,FILE_DOWNLOAD,alice,C:\Users\alice\Downloads\cust_db_tool.exe,high,Browser completed download of cust_db_tool.exe,ntfs_journal.csv,observed
+EVT-021,2026-10-07T10:05:05,file,FILE_CREATE,alice,C:\Users\alice\Downloads\cust_db_tool.exe,medium,Executable binary written to local disk,ntfs_journal.csv,observed
+EVT-022,2026-10-07T10:14:15,file,FILE_ACCESS,alice,C:\Data\customer_database_q3.csv,high,Sensitive database export file accessed with read handle,file_audit.csv,observed
+EVT-023,2026-10-07T10:15:30,file,FILE_COPY,alice,C:\Data\customer_database_q3.csv,critical,Customer database copied to removable storage volume E:\backup,file_audit.csv,observed
+EVT-024,2026-10-07T10:20:00,file,FILE_ACCESS,bob,C:\Projects\quarterly_plan.docx,low,Routine file read of planning document,file_audit.csv,observed
+

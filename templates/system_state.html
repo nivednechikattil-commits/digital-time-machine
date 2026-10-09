@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}System State at Selected Time — {{ metrics.case.name if metrics.case else 'Forensics' }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Digital System State at Selected Time</h1>
+        <p class="page-subtitle">Reconstructs the virtual state of endpoints and network perimeters at any historical timestamp</p>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <span class="scrubber-label">TARGET TIMESTAMP:</span>
+        <input type="text" id="stateTimestampInput" class="btn btn-outline btn-sm mono" style="background: var(--bg-surface-elevated); color: var(--accent-cyan); font-weight: 700; width: 200px;" value="{{ metrics.time_range.end if metrics.time_range and metrics.time_range.end != 'N/A' else '2026-10-07T10:45:20' }}">
+        <button class="btn btn-primary btn-sm" id="btnReconstructState">Reconstruct State</button>
+    </div>
+</div>
+
+<!-- State Summary Status Banner -->
+<div class="card" style="margin-bottom: 20px; border-left: 4px solid var(--accent-cyan);">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div>
+            <span style="font-weight: 700; color: var(--text-primary); font-size: 14px;">Simulated Endpoint Snapshot</span>
+            <span style="color: var(--text-secondary); margin-left: 10px; font-size: 12px;" id="stateStatusMsg">
+                Applying events recorded at or prior to target timestamp.
+            </span>
+        </div>
+        <div style="display: flex; gap: 14px; font-size: 12px;">
+            <div>Events Applied: <span id="statEventsApplied" class="mono" style="color: var(--accent-cyan); font-weight: 700;">0</span></div>
+            <div>Total In Case: <span id="statEventsTotal" class="mono" style="color: var(--text-secondary);">0</span></div>
+        </div>
+    </div>
+</div>
+
+<!-- System State Grid (4 Quadrants) -->
+<div class="state-grid">
+    <!-- Quadrant 1: Active User Sessions -->
+    <div class="state-card">
+        <div class="card-header">
+            <span class="card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                Active Simulated User Sessions
+            </span>
+            <span id="badgeActiveSessionsCount" class="pill pill-observed">0 Sessions</span>
+        </div>
+        <div class="table-container">
+            <table class="dtm-table">
+                <thead>
+                    <tr>
+                        <th>User Actor</th>
+                        <th>Workstation</th>
+                        <th>Login Time</th>
+                        <th>Last Active</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="tableSessionsBody">
+                    <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No active sessions identified at this timestamp.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Quadrant 2: Connected Removable Devices (USB) -->
+    <div class="state-card">
+        <div class="card-header">
+            <span class="card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                </svg>
+                Mounted Removable Devices & Media
+            </span>
+            <span id="badgeConnectedDevicesCount" class="pill badge-sev-medium">0 Mounted</span>
+        </div>
+        <div class="table-container">
+            <table class="dtm-table">
+                <thead>
+                    <tr>
+                        <th>Device Name</th>
+                        <th>Serial / Mount</th>
+                        <th>Attached At</th>
+                        <th>State</th>
+                        <th>Actor</th>
+                    </tr>
+                </thead>
+                <tbody id="tableDevicesBody">
+                    <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No removable storage connected at this timestamp.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Quadrant 3: Monitored Filesystem Activity -->
+    <div class="state-card">
+        <div class="card-header">
+            <span class="card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                    <polyline points="13 2 13 9 20 9"></polyline>
+                </svg>
+                Files Created, Accessed, Copied, or Deleted
+            </span>
+            <span id="badgeFilesCount" class="pill pill-observed">0 Files</span>
+        </div>
+        <div class="table-container" style="max-height: 220px; overflow-y: auto;">
+            <table class="dtm-table">
+                <thead>
+                    <tr>
+                        <th>File Path</th>
+                        <th>Latest State</th>
+                        <th>Actor</th>
+                        <th>Copy Dest / Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody id="tableFilesBody">
+                    <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No filesystem activity recorded yet.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Quadrant 4: Network Connections & Outbound Telemetry -->
+    <div class="state-card">
+        <div class="card-header">
+            <span class="card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                </svg>
+                Recorded Network Connections & Transfers
+            </span>
+            <span id="badgeNetCount" class="pill badge-sev-high">0 Flows</span>
+        </div>
+        <div class="table-container" style="max-height: 220px; overflow-y: auto;">
+            <table class="dtm-table">
+                <thead>
+                    <tr>
+                        <th>Destination</th>
+                        <th>Port</th>
+                        <th>Volume</th>
+                        <th>Actor</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody id="tableNetBody">
+                    <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No network flows recorded.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Bottom Panel: Recent Browser History & Changes at Selected Point -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+    <!-- Browser Activity -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Recorded Browser Navigation History</span>
+        </div>
+        <div class="table-container" style="max-height: 200px; overflow-y: auto;">
+            <table class="dtm-table">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>URL Object</th>
+                        <th>Actor</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBrowserBody">
+                    <tr><td colspan="3" style="text-align: center; color: var(--text-muted);">No browser navigation records.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Changes at this point in time (Delta) -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Delta Events Occurring at Selected Time</span>
+        </div>
+        <div id="deltaEventsContainer" style="display: flex; flex-direction: column; gap: 8px; font-size: 12px; max-height: 200px; overflow-y: auto;">
+            <div style="color: var(--text-muted); text-align: center; padding: 20px;">Select a timestamp to inspect instant delta transitions.</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/state.js"></script>
+{% endblock %}
+

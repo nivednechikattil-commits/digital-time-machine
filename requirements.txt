@@ -1,0 +1,7 @@
+# Digital Time Machine — Technology Dependencies
+# Works 100% offline using standard library + Jinja2 (or standard Flask/pytest if installed)
+Flask>=3.0.0
+pytest>=8.0.0
+Jinja2>=3.1.2
+MarkupSafe>=2.1.5
+

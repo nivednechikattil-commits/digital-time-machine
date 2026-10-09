@@ -1,0 +1,22 @@
+[
+  {
+    "id": "EVT-030",
+    "timestamp": "2026-10-07T10:12:00",
+    "source": "usb",
+    "event_type": "DEVICE_CONNECT",
+    "actor": "alice",
+    "object": "Kingston DataTraveler 3.0",
+    "severity": "medium",
+    "description": "USB mass storage device plugged into workstation-01 port 2",
+    "evidence_ref": "setupapi.dev.log.json",
+    "confidence": "observed",
+    "details": {
+      "serial_number": "SN-99482710",
+      "vendor_id": "0951",
+      "product_id": "1666",
+      "mount_point": "E:\\",
+      "volume_label": "KINGSTON_USB"
+    }
+  }
+]
+

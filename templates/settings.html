@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Case Settings & Management — Digital Time Machine{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Case Settings & Isolation</h1>
+        <p class="page-subtitle">Multi-investigation management, database isolation, and application configuration</p>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <!-- Active Case Metadata -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Active Investigation Details</span>
+            <span class="pill pill-observed">ACTIVE</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
+            <div>
+                <span style="color: var(--text-muted); font-size: 11px; text-transform: uppercase;">Case Name:</span>
+                <div style="font-weight: 700; color: #FFFFFF; font-size: 15px;">{{ case.name if case else 'The Missing Customer Database' }}</div>
+            </div>
+            <div>
+                <span style="color: var(--text-muted); font-size: 11px; text-transform: uppercase;">Case Identifier:</span>
+                <div class="mono" style="color: var(--accent-cyan);">{{ case.id if case else 'CASE-2026-001' }}</div>
+            </div>
+            <div>
+                <span style="color: var(--text-muted); font-size: 11px; text-transform: uppercase;">Created Timestamp:</span>
+                <div class="mono" style="color: var(--text-secondary);">{{ case.created_at if case else '2026-10-09' }}</div>
+            </div>
+            <div>
+                <span style="color: var(--text-muted); font-size: 11px; text-transform: uppercase;">Description:</span>
+                <div style="color: var(--text-secondary); line-height: 1.5;">{{ case.description if case else 'Synthetic incident scenario.' }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create New Case Form -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Initialize New Investigation</span>
+            <span class="pill pill-inferred">ISOLATED DB</span>
+        </div>
+        <form id="createCaseForm" style="display: flex; flex-direction: column; gap: 12px;">
+            <div>
+                <label for="newCaseId" style="font-size: 11px; font-weight: 600; color: var(--text-muted);">CASE ID (e.g. CASE-2026-002):</label>
+                <input type="text" id="newCaseId" class="btn btn-outline mono" style="width: 100%; margin-top: 4px; background: var(--bg-surface-elevated);" required>
+            </div>
+            <div>
+                <label for="newCaseName" style="font-size: 11px; font-weight: 600; color: var(--text-muted);">CASE TITLE / NAME:</label>
+                <input type="text" id="newCaseName" class="btn btn-outline" style="width: 100%; margin-top: 4px; background: var(--bg-surface-elevated);" placeholder="e.g. Operation Shadow Exfil" required>
+            </div>
+            <div>
+                <label for="newCaseDesc" style="font-size: 11px; font-weight: 600; color: var(--text-muted);">INVESTIGATION SUMMARY:</label>
+                <textarea id="newCaseDesc" rows="3" class="btn btn-outline" style="width: 100%; margin-top: 4px; background: var(--bg-surface-elevated); resize: vertical; text-align: left;" placeholder="Summary of alleged unauthorized access..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" id="btnCreateCase" style="justify-content: center;">
+                Create Investigation Case
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- All Known Investigations Table -->
+<div class="card">
+    <div class="card-header">
+        <span class="card-title">Available Forensic Investigations ({{ cases|length }})</span>
+    </div>
+    <div class="table-container">
+        <table class="dtm-table">
+            <thead>
+                <tr>
+                    <th>Case ID</th>
+                    <th>Name</th>
+                    <th>Created</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in cases %}
+                <tr>
+                    <td class="mono" style="font-weight: 700; color: var(--accent-cyan);">{{ c.id }}</td>
+                    <td style="font-weight: 600; color: #FFFFFF;">{{ c.name }}</td>
+                    <td class="mono" style="font-size: 11px;">{{ c.created_at }}</td>
+                    <td><span class="pill pill-observed">{{ c.status }}</span></td>
+                    <td>
+                        <a href="/?case_id={{ c.id }}" class="btn btn-outline btn-sm">
+                            Switch to Case →
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No cases recorded.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('createCaseForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const caseId = document.getElementById('newCaseId').value.trim();
+        const name = document.getElementById('newCaseName').value.trim();
+        const desc = document.getElementById('newCaseDesc').value.trim();
+
+        if (!caseId || !name) return;
+
+        try {
+            const res = await fetch('/api/cases', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: caseId, name: name, description: desc })
+            });
+            if (res.ok) {
+                window.showToast("Case created successfully", "success");
+                setTimeout(() => window.location.href = `/?case_id=${encodeURIComponent(caseId)}`, 1000);
+            } else {
+                window.showToast("Failed to create case", "error");
+            }
+        } catch (err) {
+            window.showToast("Network error: " + err.message, "error");
+        }
+    });
+</script>
+{% endblock %}
+

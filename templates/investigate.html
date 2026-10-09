@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Investigator Mode Workspace — {{ metrics.case.name if metrics.case else 'Forensics' }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Investigator Mode Workspace</h1>
+        <p class="page-subtitle">Structured forensic inquiry engine linking hypothesis resolution directly to logged artifacts</p>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+    <!-- Left Column: Structured Investigative Inquiries -->
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div class="card" style="margin-bottom: 0;">
+            <div class="card-header">
+                <span class="card-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    Forensic Hypothesis Evaluation & Evidence Links
+                </span>
+                <span class="pill pill-observed">6 Standard Inquiries</span>
+            </div>
+            <div id="inquiriesListContainer" style="display: flex; flex-direction: column; gap: 14px;">
+                <div style="text-align: center; color: var(--text-muted); padding: 30px;">Evaluating evidence against forensic inquiries...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Case Notes & Forensic Log Journal -->
+    <div>
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Add Investigator Note</span>
+                <span class="pill pill-observed">Chain of Custody</span>
+            </div>
+            <form id="noteForm" style="display: flex; flex-direction: column; gap: 10px;">
+                <div>
+                    <label for="noteAuthor" style="font-size: 11px; color: var(--text-muted); font-weight: 600;">EXAMINER NAME:</label>
+                    <input type="text" id="noteAuthor" class="btn btn-outline btn-sm mono" style="width: 100%; margin-top: 4px; background: var(--bg-surface-elevated);" value="Lead Investigator" required>
+                </div>
+                <div>
+                    <label for="noteText" style="font-size: 11px; color: var(--text-muted); font-weight: 600;">FORENSIC OBSERVATION NOTE:</label>
+                    <textarea id="noteText" rows="4" class="btn btn-outline btn-sm" style="width: 100%; margin-top: 4px; background: var(--bg-surface-elevated); resize: vertical; text-align: left;" placeholder="Record triage thoughts, verified hashes, or authorized user interview details..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm" id="btnSaveNote" style="justify-content: center;">
+                    Save Note to Investigation Log
+                </button>
+            </form>
+        </div>
+
+        <!-- Notes Log List -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Logged Case Notes</span>
+                <span id="notesCountBadge" class="mono" style="font-size: 11px; color: var(--accent-cyan);">0</span>
+            </div>
+            <div id="notesContainer" style="display: flex; flex-direction: column; gap: 10px; max-height: 420px; overflow-y: auto;">
+                <div style="text-align: center; color: var(--text-muted); padding: 20px;">Loading notes...</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/investigate.js"></script>
+{% endblock %}
+

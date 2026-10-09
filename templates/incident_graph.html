@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Incident Relationship Graph — {{ metrics.case.name if metrics.case else 'Forensics' }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Incident Relationship Graph</h1>
+        <p class="page-subtitle">Interactive entity graph linking users, devices, files, websites, and network endpoints</p>
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 11px;">
+            <span style="display: inline-block; width: 14px; height: 2px; background: #64748B;"></span>
+            <span>Recorded Link (Observed)</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 11px;">
+            <span style="display: inline-block; width: 14px; height: 2px; border-bottom: 2px dashed var(--conf-inferred);"></span>
+            <span style="color: #C084FC;">Inferred Correlation (Deduction)</span>
+        </div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 340px; gap: 20px;">
+    <!-- Left Column: Interactive SVG Graph Canvas -->
+    <div class="card" style="padding: 10px;">
+        <div class="graph-viewport" id="graphViewport">
+            <svg id="incidentGraphSvg" class="incident-svg" viewBox="0 0 800 500">
+                <defs>
+                    <marker id="arrowObserved" markerWidth="10" markerHeight="10" refX="22" refY="3" orient="auto" markerUnits="strokeWidth">
+                        <path d="M0,0 L0,6 L9,3 z" fill="#64748B" />
+                    </marker>
+                    <marker id="arrowInferred" markerWidth="10" markerHeight="10" refX="22" refY="3" orient="auto" markerUnits="strokeWidth">
+                        <path d="M0,0 L0,6 L9,3 z" fill="#8B5CF6" />
+                    </marker>
+                </defs>
+                <g id="svgEdgesLayer"></g>
+                <g id="svgNodesLayer"></g>
+            </svg>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 6px 0 6px; font-size: 11px; color: var(--text-muted);">
+            <span>Click any node or relationship edge to inspect underlying evidence records.</span>
+            <span id="graphEntityCounts" class="mono">Loading graph...</span>
+        </div>
+    </div>
+
+    <!-- Right Column: Graph Entity / Edge Inspector Drawer -->
+    <div>
+        <div class="card" id="graphInspectorCard">
+            <div class="card-header">
+                <span class="card-title">Entity / Relationship Inspector</span>
+                <span id="graphSelectionBadge" class="pill pill-observed">Select Object</span>
+            </div>
+            <div id="graphInspectorBody" style="display: flex; flex-direction: column; gap: 12px; font-size: 12px; min-height: 400px;">
+                <div style="color: var(--text-muted); text-align: center; padding: 40px 0;">
+                    Click a node (User, Device, File, Website, Network) or an edge to view supporting forensic evidence.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/graph.js"></script>
+{% endblock %}
+

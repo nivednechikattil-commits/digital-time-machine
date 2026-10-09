@@ -1,0 +1,27 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Databases
+*.db
+*.sqlite3
+
+# Uploaded evidence runtime files
+uploads/*
+!uploads/.gitkeep
+
+# Testing and environments
+.pytest_cache/
+.coverage
+htmlcov/
+venv/
+.venv/
+env/
+.env
+
+# Editor settings
+.vscode/
+.idea/
+*.swp
+

@@ -1,0 +1,5 @@
+id,timestamp,source,event_type,actor,object,severity,description,evidence_ref,confidence
+EVT-010,2026-10-07T10:02:10,browser,BROWSER_NAVIGATE,alice,http://wiki.corp.internal/crm-maintenance,low,Navigated to corporate internal maintenance wiki,browser_history.csv,observed
+EVT-011,2026-10-07T10:04:30,browser,BROWSER_NAVIGATE,alice,http://secure-update-training.internal-demo.local/cust_db_tool.exe,high,Navigated to suspicious external update distribution page,browser_history.csv,observed
+EVT-012,2026-10-07T10:45:20,browser,BROWSER_NAVIGATE,alice,http://portal.corp.internal/timesheet,low,Navigated to employee timesheet portal after 40-minute gap,browser_history.csv,observed
+

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Digital Time Machine{% endblock %} — Forensics Platform</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="dtm-body">
+    <!-- Top Cyber Investigation Header Bar -->
+    <header class="dtm-header">
+        <div class="header-brand">
+            <div class="brand-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+            </div>
+            <div class="brand-titles">
+                <span class="brand-title">DIGITAL TIME MACHINE</span>
+                <span class="brand-sub">CYBER INCIDENT RECONSTRUCTION PLATFORM</span>
+            </div>
+        </div>
+
+        <div class="header-case-status">
+            <div class="case-badge">
+                <span class="badge-label">CASE:</span>
+                <span class="badge-value" id="currentCaseName">{{ metrics.case.name if (metrics is defined and metrics and metrics.case) else 'The Missing Customer Database' }}</span>
+                <span class="badge-id">[{{ metrics.case.id if (metrics is defined and metrics and metrics.case) else 'CASE-2026-001' }}]</span>
+            </div>
+            <div class="case-range-badge">
+                <span class="range-dot"></span>
+                <span class="range-label">TIMELINE:</span>
+                <span class="range-value" id="globalTimeRange">
+                    {{ metrics.time_range.start if (metrics is defined and metrics and metrics.time_range and metrics.time_range.start != 'N/A') else '2026-10-07 10:00:15' }} → 
+                    {{ metrics.time_range.end if (metrics is defined and metrics and metrics.time_range and metrics.time_range.end != 'N/A') else '2026-10-07 10:45:20' }}
+                </span>
+            </div>
+        </div>
+
+        <div class="header-actions">
+            <button class="btn btn-sm btn-outline" id="loadDemoBtn" title="Reset and load fictional demo evidence">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Load Demo Case
+            </button>
+            <a href="/report?case_id={{ case_id }}" class="btn btn-sm btn-primary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                Generate Report
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <div class="dtm-container">
+        <!-- Sidebar Navigation -->
+        <nav class="dtm-sidebar">
+            <ul class="nav-menu">
+                <li class="nav-item {{ 'active' if active_tab == 'dashboard' else '' }}">
+                    <a href="/?case_id={{ case_id }}" class="nav-link">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                        <span>Command Center</span>
+                    </a>
+                </li>
+                <li class="nav-item {{ 'active' if active_tab == 'timeline' else '' }}">
+                    <a href="/timeline?case_id={{ case_id }}" class="nav-link">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span>Rewindable Timeline</span>
+                    </a>
+                </li>
+                <li class="nav-item {{ 'active' if active_tab == 'state' else '' }}">
+                    <a href="/state?case_id={{ case_id }}" class="nav-link">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                            <line x1="8" y1="21" x2="16" y2="21"></line>
+                            <line x1="12" y1="17" x2="12" y2="21"></line>
+                        </svg>
+                        <span>System State</span>
+                    </a>
+                </li>
+                <li class="nav-item {{ 'active' if active_tab == 'evidence' else '' }}">
+                    <a href="/evidence?case_id={{ case_id }}" class="nav-link">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <span>Evidence Explorer</span>
+                    </a>
+                </li>
+                <li class="nav-item {{ 'active' if active_tab == 'graph' else '' }}">
+                    <a href="/graph?case_id={{ case_id }}" class="nav-link">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="18" cy="5" r="3"></circle>
+                            <circle cx="6" cy="12" r="3"></circle>
+                            <circle cx="18" cy="19" r="3"></circle>
+                            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                        </svg>
+                        <span>Incident Graph</span>
+                    </a>
+                </li>
+                <li class="nav-item {{ 'active' if active_tab == 'ghost' else '' }}">
+                    <a href="/ghost?case_id={{ case_id }}" class="nav-link">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 18h6"></path>
+                            <path d="M10 22h4"></path>
+                            <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"></path>
+                        </svg>
+                        <span>Ghost Evidence</span>
+                    </a>
+                </li>
+                <li class="nav-item {{ 'active' if active_tab == 'investigate' else '' }}">
+                    <a href="/investigate?case_id={{ case_id }}" class="nav-link">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <span>Investigator Mode</span>
+                    </a>
+                </li>
+                <li class="nav-item {{ 'active' if active_tab == 'report' else '' }}">
+                    <a href="/report?case_id={{ case_id }}" class="nav-link">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                        <span>Investigation Report</span>
+                    </a>
+                </li>
+                <li class="nav-item {{ 'active' if active_tab == 'settings' else '' }}">
+                    <a href="/settings?case_id={{ case_id }}" class="nav-link">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                        <span>Case Settings</span>
+                    </a>
+                </li>
+            </ul>
+
+            <!-- Investigation Disclaimers & Integrity Footnote -->
+            <div class="sidebar-footer">
+                <div class="integrity-indicator">
+                    <span class="dot-secure"></span>
+                    <span class="integrity-text">EVIDENCE INTEGRITY SHA-256</span>
+                </div>
+                <div class="distinction-legend">
+                    <div class="legend-row">
+                        <span class="pill pill-observed">OBSERVED</span>
+                        <span class="legend-desc">Recorded log event</span>
+                    </div>
+                    <div class="legend-row">
+                        <span class="pill pill-inferred">INFERRED</span>
+                        <span class="legend-desc">Rule deduction</span>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="dtm-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Notification Toast Popup -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script>
+        window.CURRENT_CASE_ID = "{{ case_id }}";
+        
+        // Global Load Demo Case Handler
+        const demoBtn = document.getElementById('loadDemoBtn');
+        if (demoBtn) {
+            demoBtn.addEventListener('click', async () => {
+                if (!confirm("Reset current case and reload synthetic demo evidence?")) return;
+                try {
+                    demoBtn.disabled = true;
+                    demoBtn.innerText = "Loading...";
+                    const res = await fetch('/api/cases/load-demo', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ case_id: window.CURRENT_CASE_ID })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert(data.error || "Failed to load demo case");
+                        demoBtn.disabled = false;
+                        demoBtn.innerText = "Load Demo Case";
+                    }
+                } catch (e) {
+                    alert("Network error: " + e.message);
+                    demoBtn.disabled = false;
+                    demoBtn.innerText = "Load Demo Case";
+                }
+            });
+        }
+
+        // Global Toast Notification Helper
+        window.showToast = function(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = `dtm-toast toast-${type}`;
+            toast.innerText = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('toast-fadeout');
+                setTimeout(() => toast.remove(), 400);
+            }, 3500);
+        };
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

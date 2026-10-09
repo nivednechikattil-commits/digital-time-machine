@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Ghost Evidence Detector — {{ metrics.case.name if metrics.case else 'Forensics' }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Ghost Evidence Detector</h1>
+        <p class="page-subtitle">Algorithmic identification of forensic coverage gaps, missing precursor artifacts, and lifecycle anomalies</p>
+    </div>
+    <div>
+        <span class="pill pill-inferred">Experimental Gap Analytics</span>
+    </div>
+</div>
+
+<!-- Ethical & Forensic Objectivity Notice -->
+<div class="card" style="border-left: 4px solid var(--accent-cyan); background: rgba(6, 182, 212, 0.05); margin-bottom: 24px;">
+    <div style="display: flex; gap: 12px; align-items: flex-start;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-cyan); flex-shrink: 0; margin-top: 2px;">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <div style="font-size: 12px; line-height: 1.6; color: var(--text-secondary);">
+            <strong style="color: var(--accent-cyan);">Neutral Forensic Analysis Principle:</strong>
+            The detection of an evidence gap does <em>not</em> imply anti-forensics, malicious tampering, or deliberate deletion.
+            Gaps frequently occur due to default operating system audit policies (e.g. omitting read handles to save disk space),
+            intermittent network connectivity, log retention limits, or legitimate user idle time.
+        </div>
+    </div>
+</div>
+
+<!-- Anomalies Summary Banner -->
+<div class="metrics-grid">
+    <div class="metric-card">
+        <span class="metric-label">Identified Gaps / Anomalies</span>
+        <span class="metric-number" style="color: var(--accent-cyan);">{{ metrics.ghost_anomalies_count }}</span>
+        <span class="metric-sub">Artifact sequence inconsistencies</span>
+    </div>
+    <div class="metric-card">
+        <span class="metric-label">Temporal Coverage Gaps</span>
+        <span class="metric-number">
+            {{ metrics.ghost_findings|selectattr('anomaly_type', 'equalto', 'TEMPORAL_COVERAGE_GAP')|list|length }}
+        </span>
+        <span class="metric-sub">>30m unmonitored window</span>
+    </div>
+    <div class="metric-card">
+        <span class="metric-label">Missing Precursors</span>
+        <span class="metric-number">
+            {{ metrics.ghost_findings|selectattr('anomaly_type', 'equalto', 'MISSING_PRECURSOR_ARTIFACT')|list|length }}
+        </span>
+        <span class="metric-sub">Write without prior read</span>
+    </div>
+    <div class="metric-card">
+        <span class="metric-label">Unclosed Lifecycles</span>
+        <span class="metric-number">
+            {{ metrics.ghost_findings|selectattr('anomaly_type', 'equalto', 'UNCLOSED_ARTIFACT_LIFECYCLE')|list|length }}
+        </span>
+        <span class="metric-sub">USB mount lacking disconnect</span>
+    </div>
+</div>
+
+<!-- Detailed Cards for Each Ghost Finding -->
+<div style="display: flex; flex-direction: column; gap: 16px;">
+    {% for g in metrics.ghost_findings %}
+    <div class="card" style="margin-bottom: 0;">
+        <div class="card-header">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span class="pill badge-sev-{{ g.severity }}">{{ g.severity }}</span>
+                <span class="card-title" style="font-size: 15px;">{{ g.title }}</span>
+                <span class="mono" style="font-size: 11px; color: var(--accent-cyan);">[{{ g.id }}]</span>
+            </div>
+            <span class="pill pill-inferred">{{ g.anomaly_type }}</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px; font-size: 12px;">
+            <div style="background-color: var(--bg-surface-elevated); padding: 12px; border-radius: 4px;">
+                <strong style="color: var(--accent-blue);">WHAT WAS OBSERVED:</strong>
+                <p style="color: var(--text-secondary); margin-top: 4px;">{{ g.observed }}</p>
+            </div>
+            <div style="background-color: var(--bg-surface-elevated); padding: 12px; border-radius: 4px;">
+                <strong style="color: var(--sev-high);">WHAT IS MISSING:</strong>
+                <p style="color: var(--text-secondary); margin-top: 4px;">{{ g.missing }}</p>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 12px; font-size: 12px;">
+            <strong style="color: var(--text-primary);">Potential Benign Explanations:</strong>
+            <ul style="margin-left: 20px; margin-top: 4px; color: var(--text-secondary);">
+                {% for cause in g.potential_benign_causes %}
+                <li>{{ cause }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 10px; font-size: 11px;">
+            <div>
+                <strong style="color: var(--accent-cyan);">Recommended Next Forensic Step:</strong>
+                <span style="color: var(--text-secondary); margin-left: 4px;">{{ g.recommended_evidence }}</span>
+            </div>
+            <div>
+                <span style="color: var(--text-muted);">Supporting Event IDs:</span>
+                {% for eid in g.supporting_event_ids %}
+                <span class="mono" style="color: var(--accent-cyan); margin-left: 4px;">{{ eid }}</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card" style="text-align: center; color: var(--text-muted); padding: 40px;">
+        No evidence gaps or anomalous missing sequences identified in the loaded dataset.
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+

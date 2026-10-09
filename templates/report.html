@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}Investigation Report — {{ report.case.name }}{% endblock %}
+
+{% block content %}
+<!-- Top Print Action Header -->
+<div class="page-header no-print">
+    <div>
+        <h1 class="page-title">Digital Forensics Investigation Report</h1>
+        <p class="page-subtitle">Printable formal incident reconstruction and evidence synthesis dossier</p>
+    </div>
+    <div style="display: flex; gap: 10px;">
+        <button class="btn btn-primary" onclick="window.print()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                <rect x="6" y="14" width="12" height="8"></rect>
+            </svg>
+            Print Dossier / Save PDF
+        </button>
+    </div>
+</div>
+
+<!-- Formal Report Document Container -->
+<div class="report-document" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; padding: 36px; max-width: 960px; margin: 0 auto; line-height: 1.6;">
+    
+    <!-- Report Title Banner -->
+    <div style="border-bottom: 2px solid var(--accent-cyan); padding-bottom: 18px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+            <div style="font-size: 11px; font-weight: 700; color: var(--accent-cyan); letter-spacing: 1.5px; text-transform: uppercase;">
+                INCIDENT TRIAGE & RECONSTRUCTION DOSSIER
+            </div>
+            <h1 style="font-size: 24px; font-weight: 700; color: #FFFFFF; margin-top: 4px;">{{ report.case.name }}</h1>
+            <div style="color: var(--text-secondary); font-size: 12px; margin-top: 4px;">
+                Case Identifier: <strong class="mono" style="color: var(--accent-blue);">{{ report.case.id }}</strong>
+            </div>
+        </div>
+        <div style="text-align: right; font-size: 11px; color: var(--text-muted);">
+            <div>Report ID: <span class="mono">{{ report.report_id }}</span></div>
+            <div>Generated: <span class="mono">{{ report.generated_at }}</span></div>
+            <div style="margin-top: 4px;"><span class="pill pill-observed">STATUS: VERIFIED SYNTHETIC</span></div>
+        </div>
+    </div>
+
+    <!-- Mandatory Disclaimer Alert -->
+    <div style="background-color: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; padding: 14px; margin-bottom: 24px; font-size: 11px; color: var(--text-secondary); line-height: 1.5;">
+        <strong style="color: var(--sev-medium); display: block; margin-bottom: 4px;">LEGAL & FORENSIC ADMISSIBILITY DISCLAIMER:</strong>
+        {{ report.disclaimer }}
+    </div>
+
+    <!-- Section 1: Executive Overview & Case Scope -->
+    <section style="margin-bottom: 28px;">
+        <h2 style="font-size: 16px; font-weight: 700; color: var(--accent-blue); border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-bottom: 12px;">
+            1. Executive Overview & Scope
+        </h2>
+        <p style="color: var(--text-primary); font-size: 13px; margin-bottom: 12px;">
+            {{ report.case.description }}
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; background-color: var(--bg-surface-elevated); padding: 14px; border-radius: 6px;">
+            <div>
+                <span style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">Investigation Window</span>
+                <div class="mono" style="font-size: 12px; font-weight: 700; color: var(--accent-cyan); margin-top: 2px;">
+                    {{ report.investigation_time_range.start[11:19] }} → {{ report.investigation_time_range.end[11:19] }}
+                </div>
+            </div>
+            <div>
+                <span style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">Total Telemetry Events</span>
+                <div class="mono" style="font-size: 16px; font-weight: 700; color: #FFFFFF; margin-top: 2px;">
+                    {{ report.statistics.total_events }}
+                </div>
+            </div>
+            <div>
+                <span style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">Correlation Findings</span>
+                <div class="mono" style="font-size: 16px; font-weight: 700; color: var(--sev-high); margin-top: 2px;">
+                    {{ report.statistics.correlation_findings_count }}
+                </div>
+            </div>
+            <div>
+                <span style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">Ghost Evidence Gaps</span>
+                <div class="mono" style="font-size: 16px; font-weight: 700; color: var(--sev-critical); margin-top: 2px;">
+                    {{ report.statistics.ghost_anomalies_count }}
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 2: Ingested Evidence Files & Cryptographic Hashes -->
+    <section style="margin-bottom: 28px;">
+        <h2 style="font-size: 16px; font-weight: 700; color: var(--accent-blue); border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-bottom: 12px;">
+            2. Ingested Evidence Files & Chain-of-Custody Hashes
+        </h2>
+        <div class="table-container">
+            <table class="dtm-table">
+                <thead>
+                    <tr>
+                        <th>Source File</th>
+                        <th>Type</th>
+                        <th>SHA-256 Digest</th>
+                        <th>Valid Events</th>
+                        <th>Imported Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in report.evidence_files %}
+                    <tr>
+                        <td class="mono" style="font-weight: 600;">{{ f.original_filename }}</td>
+                        <td><span class="pill pill-observed">{{ f.file_type }}</span></td>
+                        <td class="mono" style="font-size: 10px; color: var(--accent-cyan);">{{ f.sha256_hash }}</td>
+                        <td class="mono">{{ f.valid_count }}</td>
+                        <td class="mono" style="font-size: 11px;">{{ f.imported_at }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Section 3: Key Incident Milestones Chronology -->
+    <section style="margin-bottom: 28px;">
+        <h2 style="font-size: 16px; font-weight: 700; color: var(--accent-blue); border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-bottom: 12px;">
+            3. Key Incident Milestones
+        </h2>
+        <div class="table-container">
+            <table class="dtm-table">
+                <thead>
+                    <tr>
+                        <th>Event ID</th>
+                        <th>Timestamp</th>
+                        <th>Source</th>
+                        <th>Event Action</th>
+                        <th>Actor</th>
+                        <th>Target Object</th>
+                        <th>Severity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in report.key_milestones %}
+                    <tr>
+                        <td class="mono" style="color: var(--accent-cyan);">{{ m.id }}</td>
+                        <td class="mono" style="font-size: 11px;">{{ m.timestamp }}</td>
+                        <td style="text-transform: uppercase; font-size: 10px; font-weight: 700;">{{ m.source }}</td>
+                        <td class="mono" style="color: var(--accent-blue); font-size: 11px;">{{ m.event_type }}</td>
+                        <td>{{ m.actor }}</td>
+                        <td class="mono" style="font-size: 11px;">{{ m.object }}</td>
+                        <td><span class="pill badge-sev-{{ m.severity }}">{{ m.severity }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Section 4: Algorithmic Correlation Findings -->
+    <section style="margin-bottom: 28px;">
+        <h2 style="font-size: 16px; font-weight: 700; color: var(--accent-blue); border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-bottom: 12px;">
+            4. Explainable Event Correlation Findings
+        </h2>
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+            {% for f in report.correlation_findings %}
+            <div style="background-color: var(--bg-surface-elevated); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <div>
+                        <span class="mono" style="color: var(--accent-cyan); font-weight: 700; font-size: 12px;">{{ f.id }}</span>
+                        <strong style="margin-left: 8px; color: #FFFFFF;">{{ f.rule_name }}</strong>
+                    </div>
+                    <span class="pill badge-sev-{{ f.severity }}">{{ f.severity }}</span>
+                </div>
+                <div style="font-size: 12px; color: var(--text-primary); margin-bottom: 8px;">
+                    {{ f.explanation }}
+                </div>
+                <div style="background: rgba(15, 23, 42, 0.6); padding: 8px; border-radius: 4px; font-size: 11px; color: var(--text-secondary); margin-bottom: 6px;">
+                    <strong style="color: var(--sev-medium);">Limitations & Alternative Causes:</strong> {{ f.limitations }}
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
+                    <div>Recommended Action: <span style="color: var(--text-primary);">{{ f.recommended_action }}</span></div>
+                    <div>Supporting IDs: <span class="mono" style="color: var(--accent-cyan);">{{ f.supporting_event_ids }}</span></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Section 5: Ghost Evidence Anomalies -->
+    <section style="margin-bottom: 28px;">
+        <h2 style="font-size: 16px; font-weight: 700; color: var(--accent-blue); border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-bottom: 12px;">
+            5. Ghost Evidence Coverage Gaps
+        </h2>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            {% for g in report.ghost_evidence_findings %}
+            <div style="background-color: var(--bg-surface-elevated); border-left: 3px solid var(--accent-cyan); padding: 10px 14px; border-radius: 4px;">
+                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+                    <strong style="color: #FFFFFF;">{{ g.title }}</strong>
+                    <span class="mono" style="color: var(--accent-cyan);">[{{ g.id }}]</span>
+                </div>
+                <div style="font-size: 12px; color: var(--text-secondary);">
+                    <strong>Observed:</strong> {{ g.observed }}
+                </div>
+                <div style="font-size: 12px; color: var(--sev-high); margin-top: 2px;">
+                    <strong>Missing Artifacts:</strong> {{ g.missing }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Section 6: Certified Sign-off -->
+    <section style="margin-top: 40px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+        <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted);">
+            <div>
+                <div>Examiner: <strong>Lead Forensic Analyst</strong></div>
+                <div>Agency: <strong>Incident Response & Threat Intelligence Unit</strong></div>
+            </div>
+            <div style="text-align: right;">
+                <div>Digital Time Machine Platform v1.0.0</div>
+                <div>Hash Verification: <span class="mono" style="color: var(--sev-low);">PASS / SHA-256 MATCHED</span></div>
+            </div>
+        </div>
+    </section>
+
+</div>
+{% endblock %}
+

@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}Rewindable Timeline — {{ metrics.case.name if metrics.case else 'Forensics' }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Chronological Rewindable Timeline</h1>
+        <p class="page-subtitle">Interactive temporal scrubber for cyber incident reconstruction</p>
+    </div>
+    <div style="display: flex; gap: 8px;">
+        <span class="pill pill-observed">Temporal State Active</span>
+    </div>
+</div>
+
+<!-- Time Machine Scrubber & Playback Controls Panel -->
+<div class="timeline-control-panel">
+    <div class="control-bar">
+        <!-- Playback action buttons -->
+        <div class="playback-buttons">
+            <button class="btn btn-outline btn-sm" id="btnRestart" title="Reset to start">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="19 20 9 12 19 4 19 20"></polygon>
+                    <line x1="5" y1="19" x2="5" y2="5"></line>
+                </svg>
+            </button>
+            <button class="btn btn-outline btn-sm" id="btnStepBack" title="Step backward one event">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="11 19 2 12 11 5 11 19"></polygon>
+                </svg>
+                Step Back
+            </button>
+            <button class="btn btn-primary btn-sm" id="btnPlayPause" style="min-width: 80px;">
+                <span id="playIcon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                </span>
+                <span id="playText">Play</span>
+            </button>
+            <button class="btn btn-outline btn-sm" id="btnStepForward" title="Step forward one event">
+                Step Next
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="13 19 22 12 13 5 13 19"></polygon>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Readout displaying currently selected timestamp -->
+        <div class="scrubber-readout">
+            <span class="scrubber-label">RECONSTRUCTED TIME:</span>
+            <span class="scrubber-time" id="currentTimeReadout">--:--:--</span>
+            <span class="scrubber-counter" id="eventCounterReadout">(0 of 0 events observed)</span>
+        </div>
+
+        <!-- Playback speed selector -->
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <label for="speedSelect" style="font-size: 11px; color: var(--text-muted); font-weight: 600;">SPEED:</label>
+            <select id="speedSelect" class="btn btn-outline btn-sm" style="background-color: var(--bg-surface-elevated); color: var(--text-primary);">
+                <option value="2000">0.5x (Slow)</option>
+                <option value="1000" selected>1.0x (Normal)</option>
+                <option value="500">2.0x (Fast)</option>
+                <option value="200">5.0x (Rapid)</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Scrubber Slider -->
+    <div class="slider-container">
+        <input type="range" min="0" max="100" value="0" id="timelineSlider" class="time-range-slider">
+        <div class="slider-ticks">
+            <span id="sliderStartTime">--</span>
+            <span style="color: var(--accent-cyan); font-weight: 600;">SCRUB TIMELINE</span>
+            <span id="sliderEndTime">--</span>
+        </div>
+    </div>
+</div>
+
+<!-- Filters & Event Table Grid -->
+<div style="display: grid; grid-template-columns: 1fr 340px; gap: 20px;">
+    <!-- Left Column: Chronological Event Feed -->
+    <div class="card">
+        <div class="card-header">
+            <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+                <span class="card-title">Chronological Evidence Stream</span>
+                <!-- Source Filter -->
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 11px; color: var(--text-muted);">Source:</span>
+                    <select id="filterSource" class="btn btn-outline btn-sm" style="padding: 2px 6px;">
+                        <option value="all">All Sources</option>
+                        <option value="login">Login / Auth</option>
+                        <option value="browser">Browser</option>
+                        <option value="file">File System</option>
+                        <option value="network">Network</option>
+                        <option value="usb">USB / Removable</option>
+                    </select>
+                </div>
+                <!-- Severity Filter -->
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 11px; color: var(--text-muted);">Severity:</span>
+                    <select id="filterSeverity" class="btn btn-outline btn-sm" style="padding: 2px 6px;">
+                        <option value="all">All Severities</option>
+                        <option value="critical">Critical Only</option>
+                        <option value="high">High & Above</option>
+                        <option value="medium">Medium & Above</option>
+                        <option value="low">All (Inc. Low)</option>
+                    </select>
+                </div>
+            </div>
+            <span id="visibleEventsCount" class="mono" style="font-size: 11px; color: var(--text-muted);">Showing 0 events</span>
+        </div>
+
+        <div class="table-container" style="max-height: 540px; overflow-y: auto;">
+            <table class="dtm-table" id="eventsTable">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">#</th>
+                        <th>Timestamp</th>
+                        <th>Source</th>
+                        <th>Type</th>
+                        <th>Actor</th>
+                        <th>Target / Object</th>
+                        <th>Severity</th>
+                        <th>Confidence</th>
+                    </tr>
+                </thead>
+                <tbody id="eventsTableBody">
+                    <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 30px;">Loading timeline events...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Right Column: Inspector Panel & Instant State Peek -->
+    <div>
+        <!-- Selected Event Inspector -->
+        <div class="card" id="eventInspectorCard">
+            <div class="card-header">
+                <span class="card-title">Event Inspector</span>
+                <span id="inspectorEventId" class="mono" style="color: var(--accent-cyan); font-size: 12px;">No Selection</span>
+            </div>
+            <div id="inspectorContent" style="display: flex; flex-direction: column; gap: 10px; font-size: 12px;">
+                <div style="color: var(--text-muted); text-align: center; padding: 20px 0;">
+                    Click any timeline event row or scrub the slider to inspect forensic artifact details.
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Snapshot Peek -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Reconstructed State Peek</span>
+                <a href="/state?case_id={{ case_id }}" style="font-size: 11px; color: var(--accent-blue); text-decoration: none;">Full State →</a>
+            </div>
+            <div id="statePeekContent" style="display: flex; flex-direction: column; gap: 8px; font-size: 11px;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-muted);">Active Sessions:</span>
+                    <span id="peekSessions" class="mono" style="color: var(--accent-cyan);">0</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-muted);">Modified Files:</span>
+                    <span id="peekFiles" class="mono" style="color: var(--text-primary);">0</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-muted);">Mounted Devices:</span>
+                    <span id="peekDevices" class="mono" style="color: var(--sev-medium);">0</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-muted);">Active Connections:</span>
+                    <span id="peekNet" class="mono" style="color: var(--sev-high);">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/timeline.js"></script>
+{% endblock %}
+
