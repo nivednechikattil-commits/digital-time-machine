@@ -9,6 +9,16 @@ import json
 
 INVESTIGATION_QUESTIONS = [
     {
+        "id": "Q_DB",
+        "question": "Who accessed the database?",
+        "category": "Database Access Attribution"
+    },
+    {
+        "id": "Q_USB",
+        "question": "When was the USB device inserted?",
+        "category": "Removable Media Forensics"
+    },
+    {
         "id": "Q1",
         "question": "What was the first suspicious recorded event?",
         "category": "Initial Access"
@@ -42,9 +52,10 @@ INVESTIGATION_QUESTIONS = [
 
 def answer_investigative_query(question_id: str, events: list[dict], findings: list[dict], ghost_anomalies: list[dict]) -> dict:
     """
-    Evaluates a specific investigative inquiry against the loaded case dataset.
+    Evaluates a specific investigative inquiry or timeline query against the loaded case dataset.
     """
     sorted_events = sorted(events, key=lambda x: x["timestamp"])
+    q_lower = str(question_id).lower()
     
     if not sorted_events:
         return {
@@ -55,6 +66,59 @@ def answer_investigative_query(question_id: str, events: list[dict], findings: l
             "confidence": "none",
             "uncertainties": "Dataset is empty."
         }
+
+    # Query: Who accessed the database?
+    if question_id == "Q_DB" or ("database" in q_lower and ("who" in q_lower or "access" in q_lower)):
+        db_events = [e for e in sorted_events if any(k in e.get("object", "").lower() or k in e.get("description", "").lower() for k in ("database", "customer_db", "c:\\data", "/data"))]
+        if db_events:
+            actors = sorted(list(set(e.get("actor") for e in db_events if e.get("actor"))))
+            details_list = [f"- {e['timestamp']} [{e['event_type']}]: {e['actor']} -> {e['object']} ({e['description']}) [Event {e['id']}]" for e in db_events]
+            return {
+                "question_id": question_id,
+                "status": "answered",
+                "answer": (
+                    f"Recorded evidence shows the customer database / directory was accessed by user(s): {', '.join(actors)}.\n"
+                    f"Chronological actions include:\n" + "\n".join(details_list)
+                ),
+                "supporting_event_ids": [e["id"] for e in db_events],
+                "confidence": "observed",
+                "uncertainties": "Access records reflect user account handles recorded in filesystem audits. Does not establish whether account credentials were compromised."
+            }
+        else:
+            return {
+                "question_id": question_id,
+                "status": "answered",
+                "answer": "No recorded events matching database directory or file access were found in the current evidence dataset.",
+                "supporting_event_ids": [],
+                "confidence": "observed",
+                "uncertainties": "Database auditing policies may not be configured."
+            }
+
+    # Query: When was the USB device inserted?
+    elif question_id == "Q_USB" or ("usb" in q_lower and ("when" in q_lower or "insert" in q_lower or "connect" in q_lower)):
+        usb_events = [e for e in sorted_events if e.get("source") == "usb" or "usb" in e.get("description", "").lower()]
+        if usb_events:
+            first_usb = usb_events[0]
+            return {
+                "question_id": question_id,
+                "status": "answered",
+                "answer": (
+                    f"The USB mass storage device '{first_usb['object']}' was connected at {first_usb['timestamp']} "
+                    f"by user '{first_usb['actor']}' on workstation-01 (Event {first_usb['id']})."
+                ),
+                "supporting_event_ids": [first_usb["id"]],
+                "confidence": "observed",
+                "uncertainties": "Device insertion timestamp reflects setupapi.dev.log telemetry. Device removal was not logged."
+            }
+        else:
+            return {
+                "question_id": question_id,
+                "status": "no_usb_found",
+                "answer": "No USB connection events were recorded in the ingested logs.",
+                "supporting_event_ids": [],
+                "confidence": "observed",
+                "uncertainties": "Removable storage auditing was not captured."
+            }
 
     if question_id == "Q1":
         # First suspicious recorded event

@@ -54,6 +54,10 @@ def generate_investigation_report_data(
         if ev.get("severity") in ("high", "critical") or ev.get("event_type") in ("LOGIN_SUCCESS", "FILE_DOWNLOAD", "DEVICE_CONNECT", "FILE_COPY", "NETWORK_TRANSFER"):
             milestones.append(ev)
 
+    # Reconstruct terminal system state
+    from engine.state_reconstructor import reconstruct_system_state
+    system_state = reconstruct_system_state(sorted_events)
+
     return {
         "report_id": f"REP-{case.get('id', 'CASE')}-{datetime.now().strftime('%Y%m%d%H%M%S')}",
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC"),
@@ -63,6 +67,7 @@ def generate_investigation_report_data(
             "start": time_range_start,
             "end": time_range_end
         },
+        "system_state": system_state,
         "statistics": {
             "total_events": len(sorted_events),
             "observed_events": observed_count,

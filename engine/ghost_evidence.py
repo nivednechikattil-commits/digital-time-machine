@@ -11,9 +11,10 @@ def parse_iso(ts_str: str) -> datetime:
     """Parses standard ISO timestamp string."""
     return datetime.fromisoformat(ts_str)
 
-def detect_ghost_evidence(events: list[dict], case_id: str = "CASE-2026-001") -> list[dict]:
+def detect_ghost_evidence(events: list[dict], case_id: str = "CASE-001") -> list[dict]:
     """
     Analyzes event sequence for evidence anomalies, gaps, and missing expected records.
+    Labels each anomaly as OBSERVED GAP, POSSIBLE INCONSISTENCY, or UNVERIFIED HYPOTHESIS.
     Returns list of ghost evidence findings.
     """
     findings = []
@@ -41,6 +42,7 @@ def detect_ghost_evidence(events: list[dict], case_id: str = "CASE-2026-001") ->
             findings.append({
                 "id": finding_id,
                 "case_id": case_id,
+                "category": "OBSERVED GAP",
                 "anomaly_type": "TEMPORAL_COVERAGE_GAP",
                 "severity": "medium",
                 "title": f"Unrecorded Browser Navigation Window ({int(gap_sec / 60)} minutes)",
@@ -73,6 +75,7 @@ def detect_ghost_evidence(events: list[dict], case_id: str = "CASE-2026-001") ->
             findings.append({
                 "id": finding_id,
                 "case_id": case_id,
+                "category": "POSSIBLE INCONSISTENCY",
                 "anomaly_type": "MISSING_PRECURSOR_ARTIFACT",
                 "severity": "medium",
                 "title": f"File Copy Without Prior Read/Open Event for '{target_file}'",
@@ -102,6 +105,7 @@ def detect_ghost_evidence(events: list[dict], case_id: str = "CASE-2026-001") ->
             findings.append({
                 "id": finding_id,
                 "case_id": case_id,
+                "category": "OBSERVED GAP",
                 "anomaly_type": "UNCLOSED_ARTIFACT_LIFECYCLE",
                 "severity": "low",
                 "title": f"Removable Device '{dev_id}' Connected Without Recorded Removal",
@@ -116,6 +120,32 @@ def detect_ghost_evidence(events: list[dict], case_id: str = "CASE-2026-001") ->
                 "supporting_event_ids": [conn["id"]],
                 "recommended_evidence": "Verify system shutdown logs (Event ID 6006/6008) or check physical hardware triage records."
             })
+
+    # 3b. User Login Without Subsequent Logout Lifecycle
+    user_logins = [e for e in sorted_events if e.get("source") == "login" and e.get("event_type") in ("LOGIN_SUCCESS", "LOGON")]
+    user_logouts = [e for e in sorted_events if e.get("source") == "login" and e.get("event_type") in ("LOGOUT", "LOGOFF")]
+    for login in user_logins:
+        usr = login.get("actor")
+        later_logouts = [l for l in user_logouts if l.get("actor") == usr and l["timestamp"] >= login["timestamp"]]
+        if not later_logouts:
+            findings.append({
+                "id": f"GHOST-UNCLOSED-SESSION-{len(findings) + 1:02d}",
+                "case_id": case_id,
+                "category": "OBSERVED GAP",
+                "anomaly_type": "UNCLOSED_ARTIFACT_LIFECYCLE",
+                "severity": "low",
+                "title": f"Active Session for '{usr}' Lacks Recorded Logout",
+                "observed": f"User '{usr}' authenticated at {login['timestamp']} with no subsequent logout event recorded.",
+                "missing": "No interactive LOGOUT audit event recorded prior to investigation onset.",
+                "potential_benign_causes": [
+                    "User remained logged in at the workstation when investigation began.",
+                    "Endpoint remained locked rather than explicitly signed out."
+                ],
+                "investigative_significance": "Session remained open and active throughout the entire incident window.",
+                "supporting_event_ids": [login["id"]],
+                "recommended_evidence": "Inspect workstation screen saver lock events (Event ID 4800) and power state transitions."
+            })
+            break
 
     # 4. Outbound Network Exfiltration Without Corresponding Process Identity
     net_events = [e for e in sorted_events if e.get("source") == "network"]
@@ -132,6 +162,7 @@ def detect_ghost_evidence(events: list[dict], case_id: str = "CASE-2026-001") ->
             findings.append({
                 "id": finding_id,
                 "case_id": case_id,
+                "category": "UNVERIFIED HYPOTHESIS",
                 "anomaly_type": "UNATTRIBUTED_NETWORK_FLOW",
                 "severity": "medium",
                 "title": f"Network Flow to {net.get('object')} Lacks Process Attribution",

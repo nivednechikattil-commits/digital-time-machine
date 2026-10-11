@@ -96,19 +96,22 @@ def reconstruct_system_state(events: list[dict], target_timestamp: str | None = 
             file_entry["last_actor"] = actor
             file_entry["history"].append({"type": etype, "timestamp": ts, "actor": actor})
 
-            if etype in ("FILE_CREATE", "FILE_CREATED"):
-                file_entry["status"] = "CREATED"
-                file_entry["created_at"] = ts
-            elif etype in ("FILE_ACCESS", "FILE_READ", "FILE_OPEN"):
-                file_entry["status"] = "ACCESSED" if file_entry["status"] == "KNOWN" else file_entry["status"]
-                file_entry["accessed_at"] = ts
-            elif etype in ("FILE_COPY", "FILE_COPIED"):
-                file_entry["status"] = "COPIED"
-                file_entry["copied_at"] = ts
-                file_entry["copy_destination"] = details.get("destination", "external_media")
-            elif etype in ("FILE_DELETE", "FILE_DELETED"):
+            if etype in ("FILE_DELETE", "FILE_DELETED"):
                 file_entry["status"] = "DELETED"
                 file_entry["deleted_at"] = ts
+            elif etype in ("FILE_CREATE", "FILE_CREATED"):
+                if file_entry["status"] != "DELETED":
+                    file_entry["status"] = "CREATED"
+                file_entry["created_at"] = ts
+            elif etype in ("FILE_COPY", "FILE_COPIED"):
+                if file_entry["status"] != "DELETED":
+                    file_entry["status"] = "COPIED"
+                file_entry["copied_at"] = ts
+                file_entry["copy_destination"] = details.get("destination", "external_media")
+            elif etype in ("FILE_ACCESS", "FILE_READ", "FILE_OPEN", "DIR_ACCESS", "DIRECTORY_ACCESS"):
+                if file_entry["status"] not in ("DELETED", "COPIED"):
+                    file_entry["status"] = "ACCESSED"
+                file_entry["accessed_at"] = ts
 
         # 3. Device Connections (USB, etc.)
         if source == "usb":

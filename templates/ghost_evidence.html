@@ -70,7 +70,10 @@
                 <span class="card-title" style="font-size: 15px;">{{ g.title }}</span>
                 <span class="mono" style="font-size: 11px; color: var(--accent-cyan);">[{{ g.id }}]</span>
             </div>
-            <span class="pill pill-inferred">{{ g.anomaly_type }}</span>
+            <div style="display: flex; gap: 8px;">
+                <span class="pill pill-observed" style="font-weight: 700; color: var(--accent-cyan);">{{ g.category or 'OBSERVED GAP' }}</span>
+                <span class="pill pill-inferred">{{ g.anomaly_type }}</span>
+            </div>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px; font-size: 12px;">

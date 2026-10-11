@@ -4,6 +4,8 @@ Main Flask Application and API Router.
 """
 
 import os
+import io
+import csv
 import json
 from datetime import datetime
 from pathlib import Path
@@ -17,7 +19,8 @@ from config import Config
 from database.db import init_db
 from services.case_service import (
     get_or_create_case, list_cases, get_case, load_demo_case,
-    get_case_metrics, add_investigation_note, get_investigation_notes
+    get_case_metrics, add_investigation_note, get_investigation_notes,
+    update_finding_status
 )
 from services.evidence_service import (
     import_evidence_file, get_events, get_event_by_id, list_evidence_files
@@ -28,6 +31,7 @@ from engine.ghost_evidence import detect_ghost_evidence
 from engine.graph_generator import generate_relationship_graph
 from engine.investigator import get_all_investigative_inquiries, answer_investigative_query
 from engine.report_generator import generate_investigation_report_data
+from engine.evidence_dna import get_evidence_dna
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config.from_object(Config)
@@ -68,7 +72,8 @@ def timeline_page():
 def state_page():
     case_id = get_current_case_id()
     metrics = get_case_metrics(case_id)
-    return render_template("system_state.html", case_id=case_id, metrics=metrics, active_tab="state")
+    target_timestamp = request.args.get("timestamp")
+    return render_template("system_state.html", case_id=case_id, metrics=metrics, target_timestamp=target_timestamp, active_tab="state")
 
 @app.route("/evidence")
 def evidence_page():
@@ -116,7 +121,7 @@ def report_page():
         ghost_findings=ghost_findings,
         notes=notes
     )
-    return render_template("report.html", report=report_data, active_tab="report")
+    return render_template("report.html", case_id=case_id, report=report_data, active_tab="report")
 
 @app.route("/settings")
 def settings_page():
@@ -154,6 +159,26 @@ def api_cases():
 
     return jsonify({"cases": list_cases()})
 
+@app.route("/api/cases/load-demo", methods=["POST", "GET"])
+def api_load_demo():
+    """Resets and loads the synthetic demo case 'CASE-001: MISSING CUSTOMER DATABASE'."""
+    case_id = None
+    if request.method == "POST":
+        data = request.get_json() or {}
+        case_id = data.get("case_id") if isinstance(data, dict) else None
+        if not case_id and hasattr(request, "form") and request.form:
+            case_id = request.form.get("case_id")
+    if not case_id:
+        case_id = request.args.get("case_id") or Config.DEMO_CASE_ID
+
+    metrics = load_demo_case(case_id)
+    return jsonify({
+        "success": True,
+        "case_id": case_id,
+        "message": f"Demo investigation '{Config.DEMO_CASE_NAME}' seeded successfully.",
+        "metrics": metrics
+    })
+
 @app.route("/api/cases/<case_id>")
 def api_case_detail(case_id):
     """Retrieves specific case metrics and metadata."""
@@ -161,18 +186,6 @@ def api_case_detail(case_id):
     if not metrics:
         return jsonify({"error": f"Case '{case_id}' not found."}), 404
     return jsonify(metrics)
-
-@app.route("/api/cases/load-demo", methods=["POST"])
-def api_load_demo():
-    """Resets and loads the synthetic demo case 'The Missing Customer Database'."""
-    data = request.get_json() or {}
-    case_id = data.get("case_id") or Config.DEMO_CASE_ID
-    metrics = load_demo_case(case_id)
-    return jsonify({
-        "success": True,
-        "message": f"Demo investigation '{Config.DEMO_CASE_NAME}' seeded successfully.",
-        "metrics": metrics
-    })
 
 @app.route("/api/events")
 def api_events():
@@ -228,6 +241,41 @@ def api_incidents():
         "case_id": case_id,
         "count": len(findings),
         "findings": findings
+    })
+
+@app.route("/api/incidents/<finding_id>")
+@app.route("/api/incidents/<finding_id>/evidence-dna")
+def api_incident_evidence_dna(finding_id):
+    """
+    Evidence DNA endpoint: retrieves granular evidence lineage,
+    recorded facts vs inferred deductions, and dataset gap analysis for a finding.
+    """
+    case_id = get_current_case_id()
+    dna = get_evidence_dna(case_id, finding_id)
+    if not dna:
+        return jsonify({"error": f"Finding '{finding_id}' not found in case '{case_id}'."}), 404
+    return jsonify(dna)
+
+@app.route("/api/incidents/<finding_id>/status", methods=["POST", "PATCH"])
+def api_incident_status(finding_id):
+    """
+    Updates status of a correlation finding (open, under_review, resolved) and persists in SQLite.
+    """
+    case_id = get_current_case_id()
+    data = request.get_json() or {}
+    new_status = (data.get("status") or "open").lower()
+    if new_status not in ("open", "under_review", "resolved"):
+        return jsonify({"error": f"Invalid status '{new_status}'. Allowed: open, under_review, resolved"}), 400
+
+    updated = update_finding_status(case_id, finding_id, new_status)
+    if not updated:
+        return jsonify({"error": f"Finding '{finding_id}' not found in case '{case_id}'."}), 404
+
+    return jsonify({
+        "success": True,
+        "finding_id": finding_id,
+        "status": updated.get("status", new_status),
+        "message": f"Finding '{finding_id}' status updated to '{new_status}' in SQLite."
     })
 
 @app.route("/api/ghost-evidence")
@@ -295,9 +343,9 @@ def api_investigate():
 
     if request.method == "POST":
         data = request.get_json() or {}
-        q_id = data.get("question_id")
-        if q_id:
-            answer = answer_investigative_query(q_id, events, findings, ghost_anomalies)
+        q_val = data.get("question_id") or data.get("query")
+        if q_val:
+            answer = answer_investigative_query(q_val, events, findings, ghost_anomalies)
             return jsonify(answer)
 
     inquiries = get_all_investigative_inquiries(events, findings, ghost_anomalies)
@@ -346,8 +394,63 @@ def api_report():
     )
     return jsonify(report_data)
 
+@app.route("/api/report/export")
+def api_report_export():
+    """
+    Exports structured investigation report as downloadable HTML or CSV dossier.
+    """
+    case_id = get_current_case_id()
+    fmt = request.args.get("format", "html").lower()
+    case = get_case(case_id)
+    if not case:
+        return jsonify({"error": f"Case '{case_id}' not found."}), 404
+
+    events = get_events(case_id)
+    evidence_files = list_evidence_files(case_id)
+    findings = run_correlation_engine(events, case_id=case_id)
+    ghost_findings = detect_ghost_evidence(events, case_id=case_id)
+    notes = get_investigation_notes(case_id)
+
+    report_data = generate_investigation_report_data(
+        case=case,
+        events=events,
+        evidence_files=evidence_files,
+        correlation_findings=findings,
+        ghost_findings=ghost_findings,
+        notes=notes
+    )
+
+    if fmt == "csv":
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["RECORD_TYPE", "ID", "TIMESTAMP", "SOURCE_OR_RULE", "ACTOR_OR_SEV", "OBJECT_OR_CONFIDENCE", "DESCRIPTION_OR_EXPLANATION"])
+        for f in findings:
+            writer.writerow(["CORRELATION_FINDING", f["id"], f["start_time"], f["rule_name"], f["severity"], f.get("confidence", "observed"), f["explanation"]])
+        for g in ghost_findings:
+            writer.writerow(["GHOST_ANOMALY", g["id"], "", g["anomaly_type"], g["severity"], g.get("category", "OBSERVED GAP"), g["title"] + " - " + g["missing"]])
+        for ev in events:
+            writer.writerow(["TIMELINE_EVENT", ev["id"], ev["timestamp"], ev["source"], ev["actor"], ev["object"], ev["description"]])
+        for n in notes:
+            writer.writerow(["INVESTIGATOR_NOTE", str(n.get("id", "")), n.get("timestamp", ""), "JOURNAL", n.get("author", ""), "NOTE", n.get("note", "")])
+
+        return Response(
+            output.getvalue(),
+            mimetype="text/csv",
+            headers={"Content-Disposition": f"attachment; filename=investigation_report_{case_id}.csv"}
+        )
+    else:
+        rendered = render_template("report.html", report=report_data, active_tab="report", is_export=True)
+        content_bytes = rendered.data if hasattr(rendered, "data") else (rendered.encode("utf-8") if isinstance(rendered, str) else rendered)
+        return Response(
+            content_bytes,
+            mimetype="text/html",
+            headers={"Content-Disposition": f"attachment; filename=investigation_report_{case_id}.html"}
+        )
+
 
 if __name__ == "__main__":
+    host = os.environ.get("HOST", "0.0.0.0")
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="127.0.0.1", port=port, debug=True)
+    debug = os.environ.get("FLASK_DEBUG", "0").lower() in ("1", "true")
+    app.run(host=host, port=port, debug=debug)
 

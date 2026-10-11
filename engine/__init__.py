@@ -4,6 +4,7 @@ from .state_reconstructor import reconstruct_system_state
 from .correlator import run_correlation_engine
 from .ghost_evidence import detect_ghost_evidence
 from .report_generator import generate_investigation_report_data
+from .evidence_dna import get_evidence_dna
 
 __all__ = [
     "normalize_timestamp",
@@ -13,6 +14,7 @@ __all__ = [
     "reconstruct_system_state",
     "run_correlation_engine",
     "detect_ghost_evidence",
-    "generate_investigation_report_data"
+    "generate_investigation_report_data",
+    "get_evidence_dna"
 ]
 

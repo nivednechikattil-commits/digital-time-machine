@@ -19,11 +19,21 @@ def get_db_connection(db_path: str) -> sqlite3.Connection:
     return conn
 
 def init_db(db_path: str):
-    """Initializes the database using the schema.sql file."""
+    """Initializes the database using the schema.sql file and applies safe migrations."""
     conn = get_db_connection(db_path)
     with open(SCHEMA_PATH, "r", encoding="utf-8") as f:
         schema_sql = f.read()
     conn.executescript(schema_sql)
+    
+    # Safe migration: ensure correlation_findings has status column
+    cur = conn.execute("PRAGMA table_info(correlation_findings);")
+    cols = [col[1] for col in cur.fetchall()]
+    if "status" not in cols:
+        conn.execute("ALTER TABLE correlation_findings ADD COLUMN status TEXT DEFAULT 'open';")
+        
+    # Safe migration: ensure evidence_files has unique index on (case_id, sha256_hash)
+    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_evidence_case_sha256 ON evidence_files(case_id, sha256_hash);")
+
     conn.commit()
     conn.close()
 

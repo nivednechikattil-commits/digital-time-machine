@@ -38,15 +38,17 @@ def list_cases() -> list[dict]:
     return cases
 
 def get_case(case_id: str) -> dict | None:
-    """Returns single case dictionary or None."""
+    """Returns single case dictionary or None, supporting legacy demo ID alias."""
     conn = get_db_connection(Config.DATABASE_PATH)
     case = query_one(conn, "SELECT * FROM cases WHERE id = ?", (case_id,))
+    if not case and case_id in (getattr(Config, "LEGACY_DEMO_CASE_ID", "CASE-2026-001"), "CASE-2026-001"):
+        case = query_one(conn, "SELECT * FROM cases WHERE id = ?", (Config.DEMO_CASE_ID,))
     conn.close()
     return case
 
 def load_demo_case(case_id: str = Config.DEMO_CASE_ID) -> dict:
     """
-    Clears and seeds the synthetic demo investigation 'The Missing Customer Database'.
+    Clears and seeds the synthetic demo investigation 'CASE-001: MISSING CUSTOMER DATABASE'.
     """
     conn = get_db_connection(Config.DATABASE_PATH)
     demo_dir = Path(Config.DEMO_DATA_DIR)
@@ -55,18 +57,21 @@ def load_demo_case(case_id: str = Config.DEMO_CASE_ID) -> dict:
     with open(manifest_path, "r", encoding="utf-8") as f:
         manifest = json.load(f)
 
+    # Use specified case_id or fallback to manifest
+    actual_case_id = case_id or manifest.get("case_id", Config.DEMO_CASE_ID)
+
     # 1. Clear existing case data for clean demo state
-    execute_write(conn, "DELETE FROM correlation_findings WHERE case_id = ?", (case_id,))
-    execute_write(conn, "DELETE FROM events WHERE case_id = ?", (case_id,))
-    execute_write(conn, "DELETE FROM evidence_files WHERE case_id = ?", (case_id,))
-    execute_write(conn, "DELETE FROM investigation_notes WHERE case_id = ?", (case_id,))
-    execute_write(conn, "DELETE FROM cases WHERE id = ?", (case_id,))
+    execute_write(conn, "DELETE FROM correlation_findings WHERE case_id = ?", (actual_case_id,))
+    execute_write(conn, "DELETE FROM events WHERE case_id = ?", (actual_case_id,))
+    execute_write(conn, "DELETE FROM evidence_files WHERE case_id = ?", (actual_case_id,))
+    execute_write(conn, "DELETE FROM investigation_notes WHERE case_id = ?", (actual_case_id,))
+    execute_write(conn, "DELETE FROM cases WHERE id = ?", (actual_case_id,))
 
     # 2. Insert case record
     execute_write(
         conn,
         "INSERT INTO cases (id, name, description, created_at, status) VALUES (?, ?, ?, ?, ?)",
-        (manifest["case_id"], manifest["name"], manifest["description"], manifest["created_at"], "active")
+        (actual_case_id, manifest["name"], manifest["description"], manifest["created_at"], "active")
     )
 
     all_events = []
@@ -96,7 +101,7 @@ def load_demo_case(case_id: str = Config.DEMO_CASE_ID) -> dict:
                (case_id, filename, original_filename, file_type, sha256_hash, record_count, valid_count, invalid_count, imported_at, file_size_bytes)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
-                case_id,
+                actual_case_id,
                 filename,
                 filename,
                 "csv" if filename.endswith(".csv") else "json",
@@ -117,7 +122,7 @@ def load_demo_case(case_id: str = Config.DEMO_CASE_ID) -> dict:
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     ev["id"],
-                    case_id,
+                    actual_case_id,
                     ev["timestamp"],
                     ev["source"],
                     ev["event_type"],
@@ -134,16 +139,16 @@ def load_demo_case(case_id: str = Config.DEMO_CASE_ID) -> dict:
             all_events.append(ev)
 
     # 4. Run correlation engine and persist findings
-    findings = run_correlation_engine(all_events, case_id=case_id)
+    findings = run_correlation_engine(all_events, case_id=actual_case_id)
     for f in findings:
         execute_write(
             conn,
             """INSERT OR REPLACE INTO correlation_findings
-               (id, case_id, rule_id, rule_name, severity, supporting_event_ids, explanation, start_time, end_time, confidence, limitations, recommended_action)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               (id, case_id, rule_id, rule_name, severity, supporting_event_ids, explanation, start_time, end_time, confidence, limitations, recommended_action, status)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 f["id"],
-                case_id,
+                actual_case_id,
                 f["rule_id"],
                 f["rule_name"],
                 f["severity"],
@@ -153,7 +158,8 @@ def load_demo_case(case_id: str = Config.DEMO_CASE_ID) -> dict:
                 f["end_time"],
                 f["confidence"],
                 f["limitations"],
-                f["recommended_action"]
+                f["recommended_action"],
+                f.get("status", "open")
             )
         )
 
@@ -162,7 +168,7 @@ def load_demo_case(case_id: str = Config.DEMO_CASE_ID) -> dict:
         conn,
         "INSERT INTO investigation_notes (case_id, timestamp, author, note) VALUES (?, ?, ?, ?)",
         (
-            case_id,
+            actual_case_id,
             datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
             "Lead Investigator",
             "Demo case initialized. Synthetic telemetry ingested from workstation-01 and perimeter sensors."
@@ -170,7 +176,19 @@ def load_demo_case(case_id: str = Config.DEMO_CASE_ID) -> dict:
     )
 
     conn.close()
-    return get_case_metrics(case_id)
+    return get_case_metrics(actual_case_id)
+
+def update_finding_status(case_id: str, finding_id: str, new_status: str) -> dict | None:
+    """Updates the status of a correlation finding (e.g. open, under_review, resolved)."""
+    conn = get_db_connection(Config.DATABASE_PATH)
+    execute_write(
+        conn,
+        "UPDATE correlation_findings SET status = ? WHERE case_id = ? AND id = ?",
+        (new_status, case_id, finding_id)
+    )
+    finding = query_one(conn, "SELECT * FROM correlation_findings WHERE case_id = ? AND id = ?", (case_id, finding_id))
+    conn.close()
+    return finding
 
 def get_case_metrics(case_id: str) -> dict:
     """
@@ -179,6 +197,9 @@ def get_case_metrics(case_id: str) -> dict:
     """
     conn = get_db_connection(Config.DATABASE_PATH)
     case = query_one(conn, "SELECT * FROM cases WHERE id = ?", (case_id,))
+    if not case and case_id in (getattr(Config, "LEGACY_DEMO_CASE_ID", "CASE-2026-001"), "CASE-2026-001"):
+        case_id = Config.DEMO_CASE_ID
+        case = query_one(conn, "SELECT * FROM cases WHERE id = ?", (case_id,))
     if not case:
         conn.close()
         return {}

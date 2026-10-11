@@ -1,13 +1,13 @@
 [
   {
     "id": "EVT-030",
-    "timestamp": "2026-10-07T10:12:00",
+    "timestamp": "2026-10-07T10:05:00",
     "source": "usb",
     "event_type": "DEVICE_CONNECT",
     "actor": "alice",
     "object": "Kingston DataTraveler 3.0",
     "severity": "medium",
-    "description": "USB mass storage device plugged into workstation-01 port 2",
+    "description": "USB device connected: Kingston mass storage device plugged into workstation-01 port 2",
     "evidence_ref": "setupapi.dev.log.json",
     "confidence": "observed",
     "details": {
@@ -19,4 +19,3 @@
     }
   }
 ]
-

@@ -10,7 +10,7 @@
     </div>
     <div style="display: flex; align-items: center; gap: 10px;">
         <span class="scrubber-label">TARGET TIMESTAMP:</span>
-        <input type="text" id="stateTimestampInput" class="btn btn-outline btn-sm mono" style="background: var(--bg-surface-elevated); color: var(--accent-cyan); font-weight: 700; width: 200px;" value="{{ metrics.time_range.end if metrics.time_range and metrics.time_range.end != 'N/A' else '2026-10-07T10:45:20' }}">
+        <input type="text" id="stateTimestampInput" class="btn btn-outline btn-sm mono" style="background: var(--bg-surface-elevated); color: var(--accent-cyan); font-weight: 700; width: 200px;" value="{{ target_timestamp or (metrics.time_range.end if metrics.time_range and metrics.time_range.end != 'N/A' else '2026-10-07T10:15:00') }}">
         <button class="btn btn-primary btn-sm" id="btnReconstructState">Reconstruct State</button>
     </div>
 </div>

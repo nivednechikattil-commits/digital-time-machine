@@ -126,7 +126,17 @@ class Response:
     def __init__(self, response="", status=200, headers=None, mimetype="text/html"):
         self.status = status
         self.mimetype = mimetype
-        if isinstance(response, str):
+        if isinstance(response, Response):
+            self.data = response.data
+            self.status = response.status if status == 200 else status
+            self.mimetype = response.mimetype if mimetype == "text/html" else mimetype
+            self.headers = dict(response.headers)
+            if headers:
+                self.headers.update(headers)
+            if "Content-Type" not in self.headers:
+                self.headers["Content-Type"] = f"{self.mimetype}; charset=utf-8"
+            return
+        elif isinstance(response, str):
             self.data = response.encode("utf-8")
         elif isinstance(response, bytes):
             self.data = response
@@ -212,6 +222,9 @@ class Flask:
         return decorator
 
     def render_template(self, template_name, **context):
+        global _active_request
+        if "request" not in context:
+            context["request"] = _active_request
         template = self.jinja_env.get_template(template_name)
         return Response(template.render(**context), status=200, mimetype="text/html")
 
@@ -240,50 +253,59 @@ class Flask:
                 return [resp.data]
 
         # Match routes
+        matched_route = None
+        route_kwargs = None
+        method_not_allowed = False
+
         for r in self.routes:
             match = r["regex"].match(path)
             if match:
-                if req.method not in r["methods"]:
-                    resp = jsonify({"error": "Method Not Allowed"}), 405
-                    status_line = "405 Method Not Allowed"
-                    headers = [("Content-Type", "application/json")]
-                    start_response(status_line, headers)
-                    return [b'{"error": "Method Not Allowed"}']
+                if req.method in r["methods"]:
+                    matched_route = r
+                    route_kwargs = match.groupdict()
+                    break
+                else:
+                    method_not_allowed = True
 
-                kwargs = match.groupdict()
-                try:
-                    result = r["func"](**kwargs)
-                    if isinstance(result, tuple):
-                        res_body, status_code = result[0], result[1]
-                        if isinstance(res_body, Response):
-                            resp = res_body
-                            resp.status = status_code
-                        elif isinstance(res_body, (dict, list)):
-                            resp = jsonify(res_body)
-                            resp.status = status_code
-                        else:
-                            resp = Response(res_body, status=status_code)
-                    elif isinstance(result, Response):
-                        resp = result
-                    elif isinstance(result, (dict, list)):
-                        resp = jsonify(result)
-                    else:
-                        resp = Response(str(result))
+        if not matched_route:
+            if method_not_allowed:
+                status_line = "405 Method Not Allowed"
+                headers = [("Content-Type", "application/json")]
+                start_response(status_line, headers)
+                return [b'{"error": "Method Not Allowed"}']
+            else:
+                resp = Response("<h1>404 Not Found</h1>", status=404, mimetype="text/html")
+                start_response("404 Not Found", list(resp.headers.items()))
+                return [resp.data]
 
-                    status_msg = "OK" if resp.status == 200 else ("Created" if resp.status == 201 else ("Redirect" if resp.status in (301, 302) else "Error"))
-                    start_response(f"{resp.status} {status_msg}", list(resp.headers.items()))
-                    return [resp.data]
-                except Exception as ex:
-                    import traceback
-                    traceback.print_exc()
-                    resp = jsonify({"error": f"Internal Server Error: {str(ex)}"}), 500
-                    start_response("500 Internal Server Error", [("Content-Type", "application/json")])
-                    return [json.dumps({"error": str(ex)}).encode("utf-8")]
+        try:
+            result = matched_route["func"](**route_kwargs)
+            if isinstance(result, tuple):
+                res_body, status_code = result[0], result[1]
+                if isinstance(res_body, Response):
+                    resp = res_body
+                    resp.status = status_code
+                elif isinstance(res_body, (dict, list)):
+                    resp = jsonify(res_body)
+                    resp.status = status_code
+                else:
+                    resp = Response(res_body, status=status_code)
+            elif isinstance(result, Response):
+                resp = result
+            elif isinstance(result, (dict, list)):
+                resp = jsonify(result)
+            else:
+                resp = Response(str(result))
 
-        # Route not matched
-        resp = Response("<h1>404 Not Found</h1>", status=404, mimetype="text/html")
-        start_response("404 Not Found", list(resp.headers.items()))
-        return [resp.data]
+            status_msg = "OK" if resp.status == 200 else ("Created" if resp.status == 201 else ("Redirect" if resp.status in (301, 302) else "Error"))
+            start_response(f"{resp.status} {status_msg}", list(resp.headers.items()))
+            return [resp.data]
+        except Exception as ex:
+            import traceback
+            traceback.print_exc()
+            resp = jsonify({"error": f"Internal Server Error: {str(ex)}"}), 500
+            start_response("500 Internal Server Error", [("Content-Type", "application/json")])
+            return [json.dumps({"error": str(ex)}).encode("utf-8")]
 
     def test_client(self):
         return TestClient(self)

@@ -90,13 +90,18 @@ def generate_relationship_graph(events: list[dict], findings: list[dict] = None)
                      f"User '{actor}' accessed URL '{obj}' at {ev['timestamp']}.")
 
         elif source == "file":
-            file_name = obj.replace("\\", "/").split("/")[-1]
-            file_id = f"file_{file_name}"
-            file_node = add_node(file_id, file_name, "file", {"full_path": obj})
+            is_dir = etype in ("DIR_ACCESS", "DIRECTORY_ACCESS") or "." not in obj.replace("\\", "/").split("/")[-1]
+            file_name = obj.replace("\\", "/").rstrip("/").split("/")[-1] or "Data"
+            file_id = f"dir_{file_name}" if is_dir else f"file_{file_name}"
+            node_label = f"[DIR] {file_name}" if is_dir else file_name
+            file_node = add_node(file_id, node_label, "file", {"full_path": obj, "category": "directory" if is_dir else "file"})
             file_node["evidence_count"] += 1
             file_node["associated_events"].append(ev_id)
 
-            if etype in ("FILE_DOWNLOAD", "DOWNLOAD"):
+            if is_dir:
+                add_edge(user_node_id, file_id, "ACCESSED_DIR", "observed", [ev_id],
+                         f"User '{actor}' accessed directory '{obj}' at {ev['timestamp']}.")
+            elif etype in ("FILE_DOWNLOAD", "DOWNLOAD"):
                 add_edge(user_node_id, file_id, "DOWNLOADED", "observed", [ev_id],
                          f"User '{actor}' downloaded file '{file_name}' at {ev['timestamp']}.")
             elif etype in ("FILE_CREATE", "FILE_CREATED"):
@@ -108,6 +113,16 @@ def generate_relationship_graph(events: list[dict], findings: list[dict] = None)
             elif etype in ("FILE_COPY", "FILE_COPIED"):
                 add_edge(user_node_id, file_id, "COPIED", "observed", [ev_id],
                          f"User '{actor}' initiated copy operation on '{file_name}' at {ev['timestamp']}.")
+            elif etype in ("FILE_DELETE", "FILE_DELETED"):
+                add_edge(user_node_id, file_id, "DELETED", "observed", [ev_id],
+                         f"User '{actor}' deleted file '{file_name}' at {ev['timestamp']}.")
+                # Explicit Database file -> Deletion node & edge
+                del_id = f"deletion_{file_name}"
+                del_node = add_node(del_id, f"DELETED: {file_name}", "file", {"action": "FILE_DELETION", "file": file_name})
+                del_node["evidence_count"] += 1
+                del_node["associated_events"].append(ev_id)
+                add_edge(file_id, del_id, "RECORDED_DELETION", "observed", [ev_id],
+                         f"File '{file_name}' marked as deleted at {ev['timestamp']}.")
 
         elif source == "usb":
             usb_id = f"usb_{obj}"
@@ -120,6 +135,11 @@ def generate_relationship_graph(events: list[dict], findings: list[dict] = None)
 
             add_edge(user_node_id, usb_id, "ATTACHED_DEVICE", "observed", [ev_id],
                      f"User '{actor}' attached removable USB device '{obj}' at {ev['timestamp']}.")
+            # Device -> USB link
+            ws_id = "dev_workstation-01"
+            add_node(ws_id, "workstation-01", "device", {"device_class": "Workstation"})
+            add_edge(ws_id, usb_id, "MOUNTED_USB", "observed", [ev_id],
+                     f"Workstation host mounted USB device '{obj}' on port 2.")
 
         elif source == "network":
             dest_ip = obj
@@ -136,6 +156,9 @@ def generate_relationship_graph(events: list[dict], findings: list[dict] = None)
             action_label = "EXFIL_TRANSFER" if etype == "NETWORK_TRANSFER" else "CONNECTED_TO"
             add_edge(user_node_id, net_id, action_label, "observed", [ev_id],
                      f"User/Host '{actor}' initiated flow to '{dest_ip}:{port}' at {ev['timestamp']}.")
+            ws_id = "dev_workstation-01"
+            add_edge(ws_id, net_id, "OUTBOUND_SOCKET", "observed", [ev_id],
+                     f"Host workstation established outbound connection to '{dest_ip}:{port}'.")
 
     # Connect Inferred Edges from Correlation Findings
     for f in findings:

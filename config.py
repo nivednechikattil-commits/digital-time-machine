@@ -14,6 +14,7 @@ class Config:
     DEMO_DATA_DIR = str(BASE_DIR / "data" / "demo")
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16 MB max upload limit
     ALLOWED_EXTENSIONS = {"csv", "json"}
-    DEMO_CASE_ID = "CASE-2026-001"
-    DEMO_CASE_NAME = "The Missing Customer Database"
+    DEMO_CASE_ID = "CASE-001"
+    DEMO_CASE_NAME = "CASE-001: MISSING CUSTOMER DATABASE"
+    LEGACY_DEMO_CASE_ID = "CASE-2026-001"
 

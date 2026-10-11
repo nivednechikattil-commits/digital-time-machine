@@ -10,9 +10,72 @@
     </div>
 </div>
 
+<!-- Interactive Query Bar -->
+<div class="card" style="margin-bottom: 20px; border-left: 4px solid var(--accent-cyan);">
+    <div class="card-header">
+        <span class="card-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            Query Timeline & Forensic Telemetry
+        </span>
+        <span class="pill pill-observed">Interactive Triage</span>
+    </div>
+    <form id="investigatorQueryForm" style="display: flex; gap: 10px; margin-bottom: 10px;">
+        <input type="text" id="queryInput" class="btn btn-outline" style="flex: 1; text-align: left; background: var(--bg-surface-elevated);" placeholder="Ask a question (e.g. 'Who accessed the database?', 'When was the USB device inserted?')...">
+        <button type="submit" class="btn btn-primary" id="btnRunQuery">Ask Timeline</button>
+    </form>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap; font-size: 11px;">
+        <span style="color: var(--text-muted); padding: 4px 0;">Common Inquiries:</span>
+        <button type="button" class="btn btn-outline btn-xs btn-preset-q" data-q="Who accessed the database?">Who accessed the database?</button>
+        <button type="button" class="btn btn-outline btn-xs btn-preset-q" data-q="When was the USB device inserted?">When was the USB device inserted?</button>
+        <button type="button" class="btn btn-outline btn-xs btn-preset-q" data-q="What was the first suspicious recorded event?">First suspicious event?</button>
+        <button type="button" class="btn btn-outline btn-xs btn-preset-q" data-q="Which records are missing?">Which records are missing?</button>
+    </div>
+    <div id="queryResultCard" style="display: none; margin-top: 14px; background: var(--bg-surface-elevated); padding: 14px; border-radius: 6px; border: 1px solid var(--border-color);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <strong id="queryResultTitle" style="color: var(--accent-cyan); font-size: 13px;">Query Answer</strong>
+            <span id="queryConfidenceBadge" class="pill pill-observed">observed</span>
+        </div>
+        <div id="queryResultText" style="color: var(--text-primary); font-size: 13px; line-height: 1.6; white-space: pre-line;"></div>
+        <div id="queryResultCaveats" style="margin-top: 8px; font-size: 11px; color: var(--sev-medium);"></div>
+        <div id="queryResultPills" style="margin-top: 8px; display: flex; gap: 4px; flex-wrap: wrap;"></div>
+    </div>
+</div>
+
 <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
-    <!-- Left Column: Structured Investigative Inquiries -->
-    <div style="display: flex; flex-direction: column; gap: 16px;">
+    <!-- Left Column: Findings Review & Standard Inquiries -->
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+        <!-- Correlation Findings Status Management -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                    Incident Findings Review & Status Tracker
+                </span>
+                <span class="pill pill-observed">Persisted in SQLite</span>
+            </div>
+            <div class="table-container">
+                <table class="dtm-table">
+                    <thead>
+                        <tr>
+                            <th>Finding ID</th>
+                            <th>Rule / Severity</th>
+                            <th>Current Status</th>
+                            <th style="text-align: right;">Update Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="findingsStatusTableBody">
+                        <tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;">Loading incident findings...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Structured Forensic Inquiries -->
         <div class="card" style="margin-bottom: 0;">
             <div class="card-header">
                 <span class="card-title">
@@ -20,9 +83,9 @@
                         <circle cx="11" cy="11" r="8"></circle>
                         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                     </svg>
-                    Forensic Hypothesis Evaluation & Evidence Links
+                    Standard Forensic Hypothesis Evaluations
                 </span>
-                <span class="pill pill-observed">6 Standard Inquiries</span>
+                <span class="pill pill-observed">Evidence-Linked</span>
             </div>
             <div id="inquiriesListContainer" style="display: flex; flex-direction: column; gap: 14px;">
                 <div style="text-align: center; color: var(--text-muted); padding: 30px;">Evaluating evidence against forensic inquiries...</div>
@@ -69,4 +132,3 @@
 {% block scripts %}
 <script src="/static/js/investigate.js"></script>
 {% endblock %}
-

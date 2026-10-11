@@ -226,6 +226,29 @@ body.dtm-body {
     background-color: #B91C1C;
 }
 
+.btn:disabled,
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed !important;
+    pointer-events: auto !important;
+    filter: grayscale(0.3);
+}
+
+.spinner-inline {
+    display: inline-block;
+    width: 13px;
+    height: 13px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #ffffff;
+    animation: spin 0.75s linear infinite;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
 .pill {
     display: inline-block;
     padding: 2px 7px;
@@ -724,6 +747,84 @@ svg.incident-svg {
 }
 
 /* ==========================================================================
+   EVIDENCE DNA STYLES
+   ========================================================================== */
+.btn-xs {
+    padding: 3px 8px;
+    font-size: 11px;
+    border-radius: var(--radius-sm);
+}
+
+.finding-row {
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.finding-row:hover {
+    background-color: var(--bg-surface-elevated) !important;
+}
+
+.finding-row.active {
+    background-color: rgba(6, 182, 212, 0.15) !important;
+    border-left: 3px solid var(--accent-cyan);
+}
+
+.dna-panel-card {
+    border-left: 4px solid var(--accent-cyan);
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+.dna-section {
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 14px;
+}
+
+.dna-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.dna-action-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    text-decoration: none;
+    background: rgba(6, 182, 212, 0.1);
+    color: var(--accent-cyan);
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    transition: all 0.15s ease;
+}
+
+.dna-action-link:hover {
+    background: rgba(6, 182, 212, 0.25);
+    border-color: var(--accent-cyan);
+}
+
+.dna-action-link-explorer {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--sev-low);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.dna-action-link-explorer:hover {
+    background: rgba(16, 185, 129, 0.25);
+    border-color: var(--sev-low);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
    PRINT STYLESHEET (FOR INVESTIGATION REPORT)
    ========================================================================== */
 @media print {
@@ -757,4 +858,17 @@ svg.incident-svg {
         background-color: transparent !important;
     }
 }
+
+/* Duplicate Evidence Identification Highlight */
+@keyframes pulse-duplicate {
+    0% { outline-color: var(--accent-cyan); background-color: rgba(6, 182, 212, 0.35); }
+    50% { outline-color: var(--accent-cyan); background-color: rgba(6, 182, 212, 0.15); }
+    100% { outline-color: rgba(6, 182, 212, 0.6); background-color: rgba(6, 182, 212, 0.2); }
+}
+
+.duplicate-highlight {
+    animation: pulse-duplicate 2s ease infinite alternate;
+    outline: 2px solid var(--accent-cyan) !important;
+}
+
 

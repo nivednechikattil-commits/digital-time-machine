@@ -1,10 +1,10 @@
 {
-  "case_id": "CASE-2026-001",
-  "name": "The Missing Customer Database",
-  "description": "Synthetic cyber incident reconstruction investigating the potential unauthorized copy and exfiltration of sensitive Q3 customer records.",
+  "case_id": "CASE-001",
+  "name": "CASE-001: MISSING CUSTOMER DATABASE",
+  "description": "Synthetic cyber incident reconstruction investigating unexpected access and reported deletion of sensitive customer database records.",
   "incident_date": "2026-10-07",
-  "created_at": "2026-10-09T10:00:00",
-  "narrative": "At approximately 10:01 AM on October 7, user 'alice' authenticated to workstation-01 following multiple failed password attempts. The user navigated to an unverified external training domain and downloaded an executable tool ('cust_db_tool.exe'). At 10:12 AM, a Kingston USB mass storage drive was connected to the host. At 10:14 AM, the primary customer database export ('customer_database_q3.csv') was accessed and copied to the removable drive. Shortly thereafter, an outbound encrypted connection transmitted 45.2MB of data to an external address (198.51.100.42:8443). A 40-minute gap in browser history was observed immediately following the incident.",
+  "created_at": "2026-10-07T10:15:00",
+  "narrative": "At 10:00 AM on October 7, employee 'alice' authenticated to workstation-01. At 10:03 AM, the database directory (C:\\Data) was accessed. At 10:05 AM, a Kingston USB mass storage drive was connected to the host. At 10:07 AM, the primary customer database file ('customer_database_q3.csv') was accessed and copied. At 10:09 AM, an outbound network connection to external server 198.51.100.42:8443 was recorded. At 10:12 AM, deletion of the customer database file was recorded on the endpoint. At 10:15 AM, internal security triage initiated an active investigation.",
   "seeded_files": [
     "login_events.csv",
     "browser_history.csv",
@@ -13,4 +13,3 @@
     "network_traffic.json"
   ]
 }
-

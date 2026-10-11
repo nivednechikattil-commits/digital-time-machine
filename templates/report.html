@@ -16,8 +16,24 @@
                 <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
                 <rect x="6" y="14" width="12" height="8"></rect>
             </svg>
-            Print Dossier / Save PDF
+            Print Dossier / PDF
         </button>
+        <a href="/api/report/export?case_id={{ report.case.id }}&format=html" class="btn btn-outline" download="investigation_report_{{ report.case.id }}.html">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Download HTML
+        </a>
+        <a href="/api/report/export?case_id={{ report.case.id }}&format=csv" class="btn btn-outline" download="investigation_report_{{ report.case.id }}.csv">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Download CSV
+        </a>
     </div>
 </div>
 
@@ -180,17 +196,70 @@
         </div>
     </section>
 
-    <!-- Section 5: Ghost Evidence Anomalies -->
+    <!-- Section 5: Reconstructed Endpoint System State -->
     <section style="margin-bottom: 28px;">
         <h2 style="font-size: 16px; font-weight: 700; color: var(--accent-blue); border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-bottom: 12px;">
-            5. Ghost Evidence Coverage Gaps
+            5. Reconstructed Endpoint System State Snapshot
+        </h2>
+        {% set state = report.system_state %}
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; font-size: 12px;">
+            <div style="background-color: var(--bg-surface-elevated); padding: 12px; border-radius: 4px;">
+                <strong style="color: var(--accent-cyan); display: block; margin-bottom: 6px;">Logged-In User Sessions ({{ state.active_sessions|length if state and state.active_sessions else 0 }})</strong>
+                <ul style="margin-left: 16px; color: var(--text-secondary);">
+                    {% for user, s in (state.active_sessions.items() if state and state.active_sessions else []) %}
+                    <li><strong class="mono" style="color: #FFFFFF;">{{ user }}</strong> on {{ s.workstation }} (Status: <span class="mono" style="color: var(--sev-low);">{{ s.status }}</span>, Login: {{ s.login_time[11:19] }})</li>
+                    {% else %}
+                    <li>No active sessions.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div style="background-color: var(--bg-surface-elevated); padding: 12px; border-radius: 4px;">
+                <strong style="color: var(--sev-medium); display: block; margin-bottom: 6px;">Mounted Removable Devices ({{ state.connected_devices|length if state and state.connected_devices else 0 }})</strong>
+                <ul style="margin-left: 16px; color: var(--text-secondary);">
+                    {% for d_id, d in (state.connected_devices.items() if state and state.connected_devices else []) %}
+                    <li><strong style="color: #FFFFFF;">{{ d.device_name }}</strong> (Serial: {{ d.serial_number }}, Mount: {{ d.mount_point }}, Status: {{ 'MOUNTED' if d.is_connected else 'REMOVED' }})</li>
+                    {% else %}
+                    <li>No removable devices mounted.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div style="background-color: var(--bg-surface-elevated); padding: 12px; border-radius: 4px;">
+                <strong style="color: var(--sev-high); display: block; margin-bottom: 6px;">Filesystem Tracking ({{ state.file_system|length if state and state.file_system else 0 }} items)</strong>
+                <ul style="margin-left: 16px; color: var(--text-secondary);">
+                    {% for f_path, f in (state.file_system.items() if state and state.file_system else []) %}
+                    <li><span class="mono" style="color: #FFFFFF;">{{ f.file_path }}</span> → <span class="pill badge-sev-{{ 'critical' if f.status == 'DELETED' else 'low' }}">{{ f.status }}</span> (Actor: {{ f.last_actor }})</li>
+                    {% else %}
+                    <li>No tracked file modifications.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div style="background-color: var(--bg-surface-elevated); padding: 12px; border-radius: 4px;">
+                <strong style="color: var(--sev-critical); display: block; margin-bottom: 6px;">Active Network Telemetry ({{ state.network_connections|length if state and state.network_connections else 0 }} sockets)</strong>
+                <ul style="margin-left: 16px; color: var(--text-secondary);">
+                    {% for n_key, n in (state.network_connections.items() if state and state.network_connections else []) %}
+                    <li><span class="mono" style="color: #FFFFFF;">{{ n.destination }}:{{ n.port }}</span> (Bytes: {{ n.bytes_transferred }}, Protocol: {{ n.protocol }}, Actor: {{ n.actor }})</li>
+                    {% else %}
+                    <li>No network connections recorded.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 6: Ghost Evidence Anomalies -->
+    <section style="margin-bottom: 28px;">
+        <h2 style="font-size: 16px; font-weight: 700; color: var(--accent-blue); border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-bottom: 12px;">
+            6. Ghost Evidence Coverage Gaps
         </h2>
         <div style="display: flex; flex-direction: column; gap: 12px;">
             {% for g in report.ghost_evidence_findings %}
             <div style="background-color: var(--bg-surface-elevated); border-left: 3px solid var(--accent-cyan); padding: 10px 14px; border-radius: 4px;">
                 <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
                     <strong style="color: #FFFFFF;">{{ g.title }}</strong>
-                    <span class="mono" style="color: var(--accent-cyan);">[{{ g.id }}]</span>
+                    <span class="mono" style="color: var(--accent-cyan);">[{{ g.id }}] ({{ g.category or 'OBSERVED GAP' }})</span>
                 </div>
                 <div style="font-size: 12px; color: var(--text-secondary);">
                     <strong>Observed:</strong> {{ g.observed }}
@@ -203,7 +272,29 @@
         </div>
     </section>
 
-    <!-- Section 6: Certified Sign-off -->
+    <!-- Section 7: Investigator Notes & Case Log Journal -->
+    <section style="margin-bottom: 28px;">
+        <h2 style="font-size: 16px; font-weight: 700; color: var(--accent-blue); border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-bottom: 12px;">
+            7. Investigator Notes & Case Log Journal ({{ report.investigation_notes|length }})
+        </h2>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            {% for n in report.investigation_notes %}
+            <div style="background-color: var(--bg-surface-elevated); border-left: 3px solid var(--accent-blue); padding: 10px 14px; border-radius: 4px;">
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">
+                    <strong style="color: var(--text-secondary);">{{ n.author }}</strong>
+                    <span class="mono">{{ n.timestamp }}</span>
+                </div>
+                <div style="font-size: 12px; color: var(--text-primary); line-height: 1.5;">
+                    {{ n.note }}
+                </div>
+            </div>
+            {% else %}
+            <div style="color: var(--text-muted); font-size: 12px;">No investigator notes recorded.</div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Section 8: Certified Sign-off -->
     <section style="margin-top: 40px; border-top: 1px solid var(--border-color); padding-top: 20px;">
         <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted);">
             <div>

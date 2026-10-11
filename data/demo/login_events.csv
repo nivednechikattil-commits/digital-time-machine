@@ -1,6 +1,5 @@
 id,timestamp,source,event_type,actor,object,severity,description,evidence_ref,confidence
-EVT-001,2026-10-07T10:00:15,login,LOGIN_FAILED,alice,workstation-01,medium,Failed interactive logon attempt (bad password),login_audit.csv,observed
-EVT-002,2026-10-07T10:00:45,login,LOGIN_FAILED,alice,workstation-01,medium,Failed interactive logon attempt (bad password),login_audit.csv,observed
-EVT-003,2026-10-07T10:01:00,login,LOGIN_SUCCESS,alice,workstation-01,low,Successful interactive logon by user alice,login_audit.csv,observed
+EVT-001,2026-10-07T09:59:15,login,LOGIN_FAILED,alice,workstation-01,medium,Failed interactive logon attempt (bad password),login_audit.csv,observed
+EVT-002,2026-10-07T09:59:45,login,LOGIN_FAILED,alice,workstation-01,medium,Failed interactive logon attempt (bad password),login_audit.csv,observed
+EVT-003,2026-10-07T10:00:00,login,LOGIN_SUCCESS,alice,workstation-01,low,Employee account login by user alice,login_audit.csv,observed
 EVT-004,2026-10-07T10:30:00,login,LOGIN_SUCCESS,bob,workstation-02,low,Routine interactive logon by user bob,login_audit.csv,observed
-

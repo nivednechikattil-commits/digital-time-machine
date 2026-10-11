@@ -92,24 +92,49 @@
                             <th>Rule Name</th>
                             <th>Supporting Events</th>
                             <th>Time Window</th>
+                            <th style="text-align: right;">Evidence DNA</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for f in metrics.findings[:5] %}
-                        <tr>
-                            <td class="mono" style="color: var(--accent-cyan);">{{ f.id }}</td>
+                        <tr class="finding-row" data-id="{{ f.id }}" title="Click to inspect Evidence DNA">
+                            <td class="mono" style="color: var(--accent-cyan); font-weight: 600;">{{ f.id }}</td>
                             <td>
                                 <span class="pill badge-sev-{{ f.severity }}">{{ f.severity }}</span>
                             </td>
                             <td><strong>{{ f.rule_name }}</strong></td>
                             <td class="mono">{{ f.supporting_event_ids }}</td>
                             <td class="mono" style="font-size: 11px;">{{ f.start_time[11:19] }} → {{ f.end_time[11:19] }}</td>
+                            <td style="text-align: right;">
+                                <button type="button" class="btn btn-outline btn-xs btn-inspect-dna" data-id="{{ f.id }}">
+                                    Inspect DNA 🧬
+                                </button>
+                            </td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No correlation findings recorded.</td></tr>
+                        <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No correlation findings recorded.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- Evidence Details Panel (Evidence DNA) -->
+        <div class="card dna-panel-card" id="evidenceDnaCard" style="display: none; margin-top: 16px;">
+            <div class="card-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 16px;">🧬</span>
+                    <span class="card-title">Evidence DNA & Details</span>
+                    <span id="dnaFindingId" class="mono" style="color: var(--accent-cyan); font-weight: 700; font-size: 13px;"></span>
+                </div>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                    <span id="dnaSeverityBadge" class="pill"></span>
+                    <span id="dnaEvidenceStatusBadge" class="pill"></span>
+                    <button type="button" class="btn btn-outline btn-xs" id="btnCloseDnaPanel" title="Close Panel" style="padding: 2px 7px;">✕</button>
+                </div>
+            </div>
+            <div id="dnaPanelBody" style="display: flex; flex-direction: column; gap: 14px; font-size: 12px;">
+                <!-- Populated dynamically via evidence_dna.js -->
             </div>
         </div>
     </div>
@@ -176,4 +201,9 @@
     </div>
 </div>
 {% endblock %}
+
+{% block scripts %}
+<script src="/static/js/evidence_dna.js"></script>
+{% endblock %}
+
 

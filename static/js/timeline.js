@@ -57,6 +57,23 @@ document.addEventListener('DOMContentLoaded', () => {
             slider.value = allEvents.length - 1;
             currentIndex = allEvents.length - 1;
 
+            // Handle incoming navigation from Evidence DNA or other modules
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetEventId = urlParams.get('event_id');
+            const targetTimestamp = urlParams.get('timestamp');
+
+            if (targetEventId) {
+                const targetIdx = allEvents.findIndex(e => e.id === targetEventId);
+                if (targetIdx !== -1) {
+                    currentIndex = targetIdx;
+                }
+            } else if (targetTimestamp) {
+                const targetIdx = allEvents.findIndex(e => e.timestamp >= targetTimestamp);
+                if (targetIdx !== -1) {
+                    currentIndex = targetIdx;
+                }
+            }
+
             sliderStartTime.innerText = allEvents[0].timestamp.replace('T', ' ');
             sliderEndTime.innerText = allEvents[allEvents.length - 1].timestamp.replace('T', ' ');
 
@@ -88,6 +105,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Fetch point-in-time system state peek
         fetchSystemStatePeek(currentEv.timestamp);
+
+        // Preserve current timestamp on Full State navigation link
+        const linkFullState = document.getElementById('linkFullState');
+        if (linkFullState) {
+            linkFullState.href = `/state?case_id=${encodeURIComponent(caseId)}&timestamp=${encodeURIComponent(currentEv.timestamp)}`;
+        }
     }
 
     // Render event feed based on scrubber position and active filters
@@ -145,6 +168,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (target) inspectEvent(target);
             });
         });
+
+        // Highlight and scroll to target event if navigated from Evidence DNA
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetEventId = urlParams.get('event_id');
+        if (targetEventId) {
+            const targetRow = document.querySelector(`.event-row[data-id="${targetEventId}"]`);
+            if (targetRow) {
+                targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                targetRow.style.boxShadow = '0 0 10px var(--accent-cyan)';
+            }
+        }
     }
 
     // Inspect single event details
@@ -171,6 +205,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">${ev.description}</div>
                 <div style="color: var(--text-secondary); font-size: 11px;">Source: <strong>${ev.source.toUpperCase()}</strong> | Ref: <span class="mono">${ev.evidence_ref}</span></div>
+                <div style="margin-top: 8px;">
+                    <a href="/evidence?case_id=${encodeURIComponent(caseId)}&file=${encodeURIComponent(ev.evidence_ref)}" class="dna-action-link dna-action-link-explorer">
+                        View '${ev.evidence_ref}' in Explorer ↗
+                    </a>
+                </div>
             </div>
 
             <div style="margin-top: 6px;">

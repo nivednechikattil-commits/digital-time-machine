@@ -43,7 +43,7 @@
         <form id="uploadEvidenceForm" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 14px;">
             <div>
                 <label for="evidenceFile" style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Select File:</label>
-                <input type="file" id="evidenceFile" name="file" accept=".csv,.json" class="btn btn-outline" style="width: 100%; margin-top: 4px; padding: 10px;">
+                <input type="file" id="evidenceFile" name="file" accept=".csv,.json" class="btn btn-outline" style="width: 100%; margin-top: 4px; padding: 10px; cursor: pointer;">
             </div>
 
             <!-- Upload Preview Area -->
@@ -54,7 +54,7 @@
             </div>
 
             <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                <button type="submit" class="btn btn-primary" id="btnUploadSubmit">
+                <button type="submit" class="btn btn-primary" id="btnUploadSubmit" disabled>
                     Verify & Ingest Evidence
                 </button>
             </div>
@@ -76,7 +76,7 @@
 <!-- Imported Evidence Files Table -->
 <div class="card">
     <div class="card-header">
-        <span class="card-title">Ingested Evidence Files ({{ files|length }})</span>
+        <span class="card-title" id="evidenceCountTitle">Ingested Evidence Files ({{ files|length }})</span>
         <span class="pill pill-observed">Immutable Artifacts</span>
     </div>
     <div class="table-container">
@@ -93,9 +93,9 @@
                     <th>File Size</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="evidenceFilesBody">
                 {% for f in files %}
-                <tr>
+                <tr data-sha256="{{ f.sha256_hash }}" id="evidence-row-{{ f.sha256_hash[:12] }}">
                     <td class="mono" style="font-weight: 600; color: var(--text-primary);">{{ f.original_filename }}</td>
                     <td><span class="pill pill-observed">{{ f.file_type }}</span></td>
                     <td class="mono" style="font-size: 10px; color: var(--accent-cyan); max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="{{ f.sha256_hash }}">
@@ -108,7 +108,7 @@
                     <td class="mono" style="font-size: 11px;">{{ (f.file_size_bytes / 1024)|round(1) }} KB</td>
                 </tr>
                 {% else %}
-                <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 30px;">No evidence files currently ingested.</td></tr>
+                <tr id="emptyEvidenceRow"><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 30px;">No evidence files currently ingested.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

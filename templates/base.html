@@ -186,7 +186,7 @@
     <div id="toastContainer" class="toast-container"></div>
 
     <script>
-        window.CURRENT_CASE_ID = "{{ case_id }}";
+        window.CURRENT_CASE_ID = "{{ case_id or 'CASE-001' }}";
         
         // Global Load Demo Case Handler
         const demoBtn = document.getElementById('loadDemoBtn');
@@ -196,21 +196,41 @@
                 try {
                     demoBtn.disabled = true;
                     demoBtn.innerText = "Loading...";
+                    const targetCaseId = window.CURRENT_CASE_ID || "CASE-001";
                     const res = await fetch('/api/cases/load-demo', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ case_id: window.CURRENT_CASE_ID })
+                        body: JSON.stringify({ case_id: targetCaseId })
                     });
                     const data = await res.json();
-                    if (data.success) {
-                        window.location.reload();
+                    if (res.ok && data.success) {
+                        demoBtn.innerText = "Demo Loaded!";
+                        if (window.showToast) {
+                            window.showToast(data.message || "Demo investigation loaded successfully.", "success");
+                        }
+                        setTimeout(() => {
+                            const destCase = data.case_id || targetCaseId;
+                            const url = new URL(window.location.href);
+                            url.searchParams.set('case_id', destCase);
+                            window.location.href = url.toString();
+                        }, 700);
                     } else {
-                        alert(data.error || "Failed to load demo case");
+                        const errMsg = data.error || (data.message && !data.success ? data.message : "Failed to load demo case (HTTP " + res.status + ")");
+                        if (window.showToast) {
+                            window.showToast(errMsg, "error");
+                        } else {
+                            alert(errMsg);
+                        }
                         demoBtn.disabled = false;
                         demoBtn.innerText = "Load Demo Case";
                     }
                 } catch (e) {
-                    alert("Network error: " + e.message);
+                    const errMsg = "Network error: " + e.message;
+                    if (window.showToast) {
+                        window.showToast(errMsg, "error");
+                    } else {
+                        alert(errMsg);
+                    }
                     demoBtn.disabled = false;
                     demoBtn.innerText = "Load Demo Case";
                 }

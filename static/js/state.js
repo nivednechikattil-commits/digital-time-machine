@@ -177,6 +177,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Check URL parameters for timestamp
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramTs = urlParams.get('timestamp');
+    if (paramTs) {
+        timestampInput.value = paramTs;
+    }
+
     btnReconstruct.addEventListener('click', () => {
         loadSystemState(timestampInput.value.trim());
     });

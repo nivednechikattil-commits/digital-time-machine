@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS correlation_findings (
     confidence TEXT NOT NULL,
     limitations TEXT NOT NULL,
     recommended_action TEXT NOT NULL,
+    status TEXT DEFAULT 'open',
     PRIMARY KEY (case_id, id),
     FOREIGN KEY (case_id) REFERENCES cases(id) ON DELETE CASCADE
 );
@@ -74,5 +75,7 @@ CREATE INDEX IF NOT EXISTS idx_events_case_source ON events(case_id, source);
 CREATE INDEX IF NOT EXISTS idx_events_case_actor ON events(case_id, actor);
 CREATE INDEX IF NOT EXISTS idx_events_case_type ON events(case_id, event_type);
 CREATE INDEX IF NOT EXISTS idx_evidence_files_case ON evidence_files(case_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_evidence_case_sha256 ON evidence_files(case_id, sha256_hash);
 CREATE INDEX IF NOT EXISTS idx_findings_case ON correlation_findings(case_id);
+
 

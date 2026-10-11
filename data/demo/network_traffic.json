@@ -1,13 +1,13 @@
 [
   {
     "id": "EVT-040",
-    "timestamp": "2026-10-07T10:04:31",
+    "timestamp": "2026-10-07T10:02:16",
     "source": "network",
     "event_type": "NETWORK_CONNECTION",
     "actor": "alice",
     "object": "198.51.100.15",
     "severity": "low",
-    "description": "Outbound HTTP connection to training host 198.51.100.15:80",
+    "description": "Outbound HTTP connection to update host 198.51.100.15:80",
     "evidence_ref": "firewall_flows.json",
     "confidence": "observed",
     "details": {
@@ -19,13 +19,13 @@
   },
   {
     "id": "EVT-041",
-    "timestamp": "2026-10-07T10:16:00",
+    "timestamp": "2026-10-07T10:09:00",
     "source": "network",
     "event_type": "NETWORK_TRANSFER",
     "actor": "alice",
     "object": "198.51.100.42",
     "severity": "critical",
-    "description": "High-volume outbound encrypted TLS session to external IP 198.51.100.42:8443",
+    "description": "Network connection recorded: outbound encrypted TLS transfer to external IP 198.51.100.42:8443",
     "evidence_ref": "firewall_flows.json",
     "confidence": "observed",
     "details": {
@@ -54,4 +54,3 @@
     }
   }
 ]
-
