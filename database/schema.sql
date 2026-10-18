@@ -78,4 +78,46 @@ CREATE INDEX IF NOT EXISTS idx_evidence_files_case ON evidence_files(case_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_evidence_case_sha256 ON evidence_files(case_id, sha256_hash);
 CREATE INDEX IF NOT EXISTS idx_findings_case ON correlation_findings(case_id);
 
+-- Investigation Time Machine: Immutable analysis snapshots and integrity tracking
+CREATE TABLE IF NOT EXISTS investigation_snapshots (
+    id TEXT PRIMARY KEY,
+    case_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    note TEXT,
+    created_at TEXT NOT NULL,
+    rule_version TEXT NOT NULL,
+    evidence_hash TEXT NOT NULL,
+    integrity_hash TEXT NOT NULL,
+    FOREIGN KEY (case_id) REFERENCES cases(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS snapshot_findings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    snapshot_id TEXT NOT NULL,
+    finding_id TEXT NOT NULL,
+    rule_id TEXT NOT NULL,
+    rule_name TEXT NOT NULL,
+    severity TEXT NOT NULL,
+    status TEXT NOT NULL,
+    confidence TEXT,
+    supporting_event_ids TEXT,
+    explanation TEXT,
+    FOREIGN KEY (snapshot_id) REFERENCES investigation_snapshots(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS snapshot_evidence_refs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    snapshot_id TEXT NOT NULL,
+    evidence_file_id INTEGER,
+    filename TEXT NOT NULL,
+    sha256_hash TEXT NOT NULL,
+    record_count INTEGER,
+    FOREIGN KEY (snapshot_id) REFERENCES investigation_snapshots(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_snapshots_case ON investigation_snapshots(case_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_snapshot_findings ON snapshot_findings(snapshot_id);
+CREATE INDEX IF NOT EXISTS idx_snapshot_evidence ON snapshot_evidence_refs(snapshot_id);
+
+
 

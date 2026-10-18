@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}Investigation Time Machine — {{ metrics.case.name if metrics.case else 'Forensics' }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Investigation Time Machine</h1>
+        <p class="page-subtitle">Analysis evolution tracker comparing historical investigation milestones, finding mutations, and evidence provenance over time</p>
+    </div>
+    <div style="display: flex; gap: 10px;">
+        <button id="btnToggleNewSnapshot" class="btn btn-primary btn-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            Capture New Snapshot
+        </button>
+    </div>
+</div>
+
+<!-- Capture New Snapshot Card (Collapsible) -->
+<div id="newSnapshotCard" class="card" style="display: none; border-left: 4px solid var(--accent-cyan); margin-bottom: 20px;">
+    <div class="card-header">
+        <span class="card-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 8 14"></polyline>
+            </svg>
+            Save Immutable Investigation Snapshot
+        </span>
+        <span class="pill pill-observed">SHA-256 Baselined</span>
+    </div>
+    <form id="newSnapshotForm" style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px;">
+            <div>
+                <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Snapshot Milestone Name *</label>
+                <input type="text" id="snapshotNameInput" class="btn btn-outline" style="width: 100%; text-align: left; background: var(--bg-surface-elevated);" placeholder="e.g. Initial Ingestion Baseline, Post-USB Device Analysis..." required>
+            </div>
+            <div>
+                <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Analysis Rule Version</label>
+                <input type="text" id="ruleVersionInput" class="btn btn-outline" style="width: 100%; text-align: left; background: var(--bg-surface-elevated); font-family: var(--font-mono);" value="v1.2.0-deterministic" readonly>
+            </div>
+        </div>
+        <div>
+            <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Investigator Log Note (Optional)</label>
+            <textarea id="snapshotNoteInput" class="btn btn-outline" rows="2" style="width: 100%; text-align: left; background: var(--bg-surface-elevated); resize: vertical;" placeholder="Context for why this milestone was captured (e.g. Completed initial triage of workstation logs before importing network PCAP)..."></textarea>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+            <button type="button" id="btnCancelSnapshot" class="btn btn-outline btn-sm">Cancel</button>
+            <button type="submit" id="btnSubmitSnapshot" class="btn btn-primary btn-sm">Save Snapshot</button>
+        </div>
+    </form>
+</div>
+
+<!-- Snapshot Comparison Selector Bar -->
+<div class="card" style="margin-bottom: 20px;">
+    <div class="card-header">
+        <span class="card-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="18" cy="18" r="3"></circle>
+                <circle cx="6" cy="6" r="3"></circle>
+                <path d="M13 6h3a2 2 0 0 1 2 2v7"></path>
+                <line x1="6" y1="9" x2="6" y2="21"></line>
+            </svg>
+            Compare Investigation Milestones
+        </span>
+        <span class="pill pill-inferred">Analysis Evolution</span>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 14px; align-items: flex-end;">
+        <div>
+            <label style="display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Baseline Snapshot (Snapshot A)</label>
+            <select id="selectSnapshotA" class="btn btn-outline" style="width: 100%; text-align: left; background: var(--bg-surface-elevated);">
+                <option value="">-- Select Baseline Snapshot --</option>
+            </select>
+        </div>
+        <div>
+            <label style="display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Comparison Snapshot (Snapshot B)</label>
+            <select id="selectSnapshotB" class="btn btn-outline" style="width: 100%; text-align: left; background: var(--bg-surface-elevated);">
+                <option value="">-- Select Comparison Snapshot --</option>
+            </select>
+        </div>
+        <div>
+            <button id="btnCompareSnapshots" class="btn btn-primary btn-sm" style="height: 38px; display: flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="16 3 21 3 21 8"></polyline>
+                    <line x1="4" y1="20" x2="21" y2="3"></line>
+                    <polyline points="21 16 21 21 16 21"></polyline>
+                    <line x1="15" y1="15" x2="21" y2="21"></line>
+                    <line x1="4" y1="4" x2="9" y2="9"></line>
+                </svg>
+                Compare Snapshots
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Comparison Results Section -->
+<div id="comparisonContainer" style="display: none; margin-bottom: 24px;">
+    <!-- Comparison Metadata Bar -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 16px;">
+        <div class="card" style="margin-bottom: 0; border-top: 3px solid #38BDF8;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+                <strong id="metaA_Name" style="color: #38BDF8; font-size: 14px;">Snapshot A</strong>
+                <span id="metaA_Integrity" class="integrity-badge verified">SHA-256 Verified</span>
+            </div>
+            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);" id="metaA_Id"></div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+                Captured: <span id="metaA_Time" style="color: var(--text-primary); font-family: var(--font-mono);"></span> | 
+                Findings: <span id="metaA_Findings" style="color: var(--text-primary); font-weight: 600;"></span> | 
+                Files: <span id="metaA_Files" style="color: var(--text-primary); font-weight: 600;"></span>
+            </div>
+        </div>
+        <div class="card" style="margin-bottom: 0; border-top: 3px solid #06B6D4;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+                <strong id="metaB_Name" style="color: #06B6D4; font-size: 14px;">Snapshot B</strong>
+                <span id="metaB_Integrity" class="integrity-badge verified">SHA-256 Verified</span>
+            </div>
+            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);" id="metaB_Id"></div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+                Captured: <span id="metaB_Time" style="color: var(--text-primary); font-family: var(--font-mono);"></span> | 
+                Findings: <span id="metaB_Findings" style="color: var(--text-primary); font-weight: 600;"></span> | 
+                Files: <span id="metaB_Files" style="color: var(--text-primary); font-weight: 600;"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Diff Metrics KPI Grid -->
+    <div class="metrics-grid" style="grid-template-columns: repeat(6, 1fr); margin-bottom: 20px;">
+        <div class="metric-card">
+            <div class="metric-label">Added Findings</div>
+            <div class="metric-value" id="kpiAddedFindings" style="color: #10B981;">0</div>
+            <div class="metric-sub">New in Snapshot B</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Changed Status</div>
+            <div class="metric-value" id="kpiChangedFindings" style="color: #F59E0B;">0</div>
+            <div class="metric-sub">Adjudicated or mutated</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Removed Findings</div>
+            <div class="metric-value" id="kpiRemovedFindings" style="color: #EF4444;">0</div>
+            <div class="metric-sub">Omitted in Snapshot B</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Unchanged</div>
+            <div class="metric-value" id="kpiUnchangedFindings" style="color: #94A3B8;">0</div>
+            <div class="metric-sub">Stable findings</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Evidence Delta</div>
+            <div class="metric-value" id="kpiEvidenceDelta" style="color: #38BDF8;">0</div>
+            <div class="metric-sub">Files added/removed</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">New Contradictions</div>
+            <div class="metric-value" id="kpiNewContradictions" style="color: #F97316;">0</div>
+            <div class="metric-sub">Detected in Snapshot B</div>
+        </div>
+    </div>
+
+    <!-- Findings Mutation Detailed Breakdown -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+                Findings Mutation & Analytical Attribution
+            </span>
+            <div style="display: flex; gap: 6px;">
+                <button type="button" class="btn btn-outline btn-xs btn-diff-filter active" data-filter="all">All Differences</button>
+                <button type="button" class="btn btn-outline btn-xs btn-diff-filter" data-filter="Added">Added</button>
+                <button type="button" class="btn btn-outline btn-xs btn-diff-filter" data-filter="Changed">Changed</button>
+                <button type="button" class="btn btn-outline btn-xs btn-diff-filter" data-filter="Removed">Removed</button>
+                <button type="button" class="btn btn-outline btn-xs btn-diff-filter" data-filter="Unchanged">Unchanged</button>
+            </div>
+        </div>
+
+        <div id="diffItemsContainer" style="display: flex; flex-direction: column; gap: 12px;"></div>
+    </div>
+
+    <!-- Evidence File Provenance Delta -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                Evidence Set Provenance & Hash Diff
+            </span>
+            <span class="pill pill-observed">Primary Data Baseline</span>
+        </div>
+        <div id="evidenceDiffContainer" style="display: flex; flex-direction: column; gap: 8px;"></div>
+    </div>
+</div>
+
+<!-- Saved Historical Snapshots Table -->
+<div class="card">
+    <div class="card-header">
+        <span class="card-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            Saved Investigation Snapshots
+        </span>
+        <span id="savedSnapshotsCountBadge" class="pill pill-observed">0 Snapshots</span>
+    </div>
+    <div class="table-container">
+        <table class="dtm-table">
+            <thead>
+                <tr>
+                    <th>Snapshot ID</th>
+                    <th>Milestone Name & Note</th>
+                    <th>Created Timestamp</th>
+                    <th>Rule Version</th>
+                    <th>Findings</th>
+                    <th>Evidence Files</th>
+                    <th>SHA-256 Integrity</th>
+                    <th style="text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="savedSnapshotsTableBody">
+                <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 24px;">Loading saved snapshots...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="/static/js/time_machine.js"></script>
+{% endblock %}

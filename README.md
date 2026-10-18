@@ -52,6 +52,8 @@ digital-time-machine/
 │   ├── ghost_evidence.py       # Ghost evidence & coverage gap detector
 │   ├── graph_generator.py      # Incident relationship entity graph generator
 │   ├── investigator.py         # Forensic inquiry Q&A engine
+│   ├── evidence_dna.py         # Deep forensic lineage & facts vs inferences
+│   ├── stress_tester.py        # Conclusion stress tester & adversarial validator
 │   └── report_generator.py     # Investigation dossier & report compiler
 ├── parsers/
 │   ├── __init__.py
@@ -60,7 +62,8 @@ digital-time-machine/
 ├── services/
 │   ├── __init__.py
 │   ├── case_service.py         # Multi-case lifecycle & metrics aggregator
-│   └── evidence_service.py     # Safe upload, hashing & duplicate prevention
+│   ├── evidence_service.py     # Safe upload, hashing & duplicate prevention
+│   └── snapshot_service.py     # Investigation Time Machine snapshots & diff engine
 ├── data/
 │   └── demo/                   # Seeded synthetic training scenario
 │       ├── login_events.csv
@@ -78,6 +81,8 @@ digital-time-machine/
 │   ├── incident_graph.html
 │   ├── ghost_evidence.html
 │   ├── investigate.html
+│   ├── stress_test.html        # Conclusion Stress Tester workspace
+│   ├── time_machine.html       # Investigation Time Machine comparator
 │   ├── report.html
 │   └── settings.html
 ├── static/
@@ -88,8 +93,11 @@ digital-time-machine/
 │       ├── state.js            # System state dynamic renderer
 │       ├── graph.js            # SVG relationship graph renderer
 │       ├── evidence.js         # File upload & validation diagnostics
-│       └── investigate.js      # Inquiry evaluator & notes journal
-└── tests/                      # Automated test suite
+│       ├── investigate.js      # Inquiry evaluator & notes journal
+│       ├── evidence_dna.js     # Evidence DNA modal & gap viewer
+│       ├── stress_test.js      # Stress test evaluator & custom hypothesis runner
+│       └── time_machine.js     # Snapshot capture & comparative evolution renderer
+└── tests/                      # Automated test suite (84 tests)
     ├── __init__.py
     ├── test_normalizer.py
     ├── test_parsers.py
@@ -98,6 +106,10 @@ digital-time-machine/
     ├── test_correlator.py
     ├── test_ghost_evidence.py
     ├── test_evidence_service.py
+    ├── test_evidence_dna.py
+    ├── test_demo_case_e2e.py
+    ├── test_stress_tester.py    # Conclusion Stress Tester test suite
+    ├── test_time_machine.py     # Investigation Time Machine test suite
     └── test_api.py
 ```
 
@@ -107,7 +119,7 @@ digital-time-machine/
 
 ### Prerequisites
 - Python 3.10+ installed.
-- Works **100% offline** without internet access.
+- Works **100% offline** using Python standard library + Jinja2.
 
 ### Launch Application
 From the project root:
@@ -123,12 +135,13 @@ http://127.0.0.1:5000/
 
 ### Run Automated Tests
 ```bash
-# Execute the full 34-test suite
+# Execute the full 84-test suite (0 failures, 0 errors)
 python3 run_tests.py
 
-# Or with pytest if installed:
-pytest -v
+# Or with unittest directly:
+python3 -m unittest discover tests -v
 ```
+
 
 ---
 
@@ -185,4 +198,55 @@ Every correlation finding provides:
 5. **Incident Graph (`/graph`):** Demonstrate the SVG entity graph linking `alice` → `workstation-01` → `cust_db_tool.exe` → `Kingston USB`. Click nodes and edges to show supporting log IDs.
 6. **Investigator Workspace (`/investigate`):** Show automated evaluation of standard questions (e.g. *"What happened immediately before the download?"*) and add a triage note to the chain-of-custody log.
 7. **Generate Report (`/report`):** Click **Generate Report** or **Print Dossier** to preview the print-ready forensic dossier.
+
+---
+
+## 9. Feature 1: Conclusion Stress Tester (`/stress-test`)
+
+The **Conclusion Stress Tester** acts as an adversarial verification engine. It evaluates whether incident findings and investigator deductions are genuinely substantiated by recorded digital telemetry or exceed what the evidence establishes.
+
+### Objective & Analytical Categories
+Findings are evaluated against deterministic forensic rules without external AI dependencies, assigning transparent analytical assessments:
+- **Supported by available evidence:** All sequence stages corroborated by verified independent records.
+- **Partially supported:** Single-stream telemetry or minor analytical caveats identified.
+- **Requires investigator review:** Uncorroborated event references, potential intent over-claims, or unverified process lineage.
+- **Insufficient evidence:** Telemetry does not substantiate the core conclusion (e.g. asserting file copy when only USB connection and access occurred).
+- **Contradictory evidence found:** Conflicting records detected in case telemetry (e.g. activity attributed while actor was logged out).
+
+### Adversarial Verification Rules:
+1. **USB Copy Over-Claim Detection (Scenario D):** Flags claims asserting "the customer database was copied to a USB device" when logs only record device insertion and file access without a volume write or copy event.
+2. **Duplicate Corroboration Detection:** Identifies repeated event IDs or identical log records, preventing duplicate ingestion from masquerading as independent multi-source corroboration.
+3. **Chronological & Sequence Integrity:** Validates that precursor events occurred prior to consequential actions and detects inverted timestamps.
+4. **Process Lineage Checks:** Warns when network exfiltration is correlated to a downloaded binary solely by temporal proximity without EDR process tree lineage.
+5. **Real Database Linking:** Every cited event record links directly to the immutable record in SQLite and the interactive timeline (`/timeline?case_id=...&event_id=...`).
+
+### REST API Endpoints:
+- `GET /api/stress-test?case_id=...`: Evaluates all correlation findings for a case.
+- `GET /api/stress-test/<finding_id>?case_id=...`: Evaluates a specific finding.
+- `POST /api/stress-test/custom`: Evaluates an investigator's proposed custom hypothesis against specified event IDs.
+
+---
+
+## 10. Feature 2: Investigation Time Machine (`/time-machine`)
+
+The **Investigation Time Machine** provides meta-historical tracking for the investigation itself. It preserves immutable snapshots of the analysis state over time and lets examiners understand how new evidence shifts conclusions.
+
+### Core Capabilities:
+1. **Immutable Snapshots:** Captures named analysis milestones with timestamp, rule version, evidence file references, finding statuses, investigator notes, and a cryptographic **SHA-256 integrity hash**.
+2. **Integrity Tampering Detection:** Re-computes canonical hashes across stored findings and evidence files; immediately flags unauthorized modifications (`✓ SHA-256 OK` vs `⚠ TAMPERED`).
+3. **Deep Milestone Comparison:**
+   - **Added Findings:** Identifies new conclusions generated by newly ingested evidence.
+   - **Changed Findings:** Pinpoints status changes (e.g. `open` → `resolved`) or modified supporting event sets with plain-language forensic attribution.
+   - **Removed Findings:** Highlights omitted findings without falsely claiming a hypothesis was disproven.
+   - **Unchanged Findings:** Confirms stable analytical conclusions across milestones.
+   - **Evidence Provenance Delta:** Compares files added or excluded with SHA-256 hash validation.
+   - **Newly Detected Contradictions:** Highlights contradictions introduced by newly added telemetry.
+4. **Timeline Integration:** Navigates directly from changed findings in comparison views to supporting events in the interactive incident timeline.
+
+### REST API Endpoints:
+- `GET /api/snapshots?case_id=...`: Lists saved snapshots with integrity verification status.
+- `POST /api/snapshots`: Captures a new immutable snapshot.
+- `GET /api/snapshots/<snapshot_id>`: Retrieves full snapshot state and verifies SHA-256 integrity.
+- `GET /api/snapshots/compare?case_id=...&snapshot_a_id=...&snapshot_b_id=...`: Performs deep side-by-side comparison.
+
 

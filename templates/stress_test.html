@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Conclusion Stress Tester — {{ metrics.case.name if metrics.case else 'Forensics' }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Conclusion Stress Tester</h1>
+        <p class="page-subtitle">Adversarial forensic verification engine evaluating whether incident conclusions exceed or contradict recorded telemetry</p>
+    </div>
+    <div style="display: flex; gap: 10px;">
+        <button id="btnRunStressTest" class="btn btn-primary btn-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                <path d="M12 8v4"></path>
+                <path d="M12 16h.01"></path>
+            </svg>
+            Run Case Stress Test
+        </button>
+        <button id="btnToggleCustomTest" class="btn btn-outline btn-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            Test Custom Hypothesis
+        </button>
+    </div>
+</div>
+
+<!-- Stress Test Summary Counters -->
+<div class="metrics-grid" style="grid-template-columns: repeat(5, 1fr); margin-bottom: 20px;">
+    <div class="metric-card">
+        <div class="metric-label">Supported</div>
+        <div class="metric-value" id="kpiSupported" style="color: #10B981;">0</div>
+        <div class="metric-sub">By recorded evidence</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-label">Partially Supported</div>
+        <div class="metric-value" id="kpiPartiallySupported" style="color: #38BDF8;">0</div>
+        <div class="metric-sub">Single-stream telemetry</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-label">Requires Review</div>
+        <div class="metric-value" id="kpiRequiresReview" style="color: #C084FC;">0</div>
+        <div class="metric-sub">Unverified claims & gaps</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-label">Insufficient Evidence</div>
+        <div class="metric-value" id="kpiInsufficient" style="color: #F97316;">0</div>
+        <div class="metric-sub">Uncorroborated hypotheses</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-label">Contradictory Telemetry</div>
+        <div class="metric-value" id="kpiContradictory" style="color: #EF4444;">0</div>
+        <div class="metric-sub">Conflicting logged facts</div>
+    </div>
+</div>
+
+<!-- Custom Hypothesis Stress Tester Card (Collapsible) -->
+<div id="customHypothesisCard" class="card" style="display: none; border-left: 4px solid var(--accent-cyan); margin-bottom: 20px;">
+    <div class="card-header">
+        <span class="card-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            Test Investigator Conclusion / Hypothesis
+        </span>
+        <span class="pill pill-inferred">Adversarial Evaluation</span>
+    </div>
+    <form id="customHypothesisForm" style="display: flex; flex-direction: column; gap: 12px;">
+        <div>
+            <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Conclusion Statement Being Evaluated:</label>
+            <input type="text" id="customConclusionInput" class="btn btn-outline" style="width: 100%; text-align: left; background: var(--bg-surface-elevated);" placeholder="e.g. The customer database was copied to a USB device.">
+        </div>
+        <div>
+            <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Referenced Event IDs (comma-separated):</label>
+            <input type="text" id="customEventsInput" class="btn btn-outline" style="width: 100%; text-align: left; background: var(--bg-surface-elevated); font-family: var(--font-mono);" placeholder="e.g. EVT-022, EVT-030">
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; gap: 6px; align-items: center; font-size: 11px;">
+                <span style="color: var(--text-muted);">Quick Presets:</span>
+                <button type="button" class="btn btn-outline btn-xs btn-preset-hypo" 
+                        data-conclusion="The customer database was copied to a USB device." 
+                        data-events="EVT-022, EVT-030">Demo: Database copied to USB (EVT-022, EVT-030)</button>
+                <button type="button" class="btn btn-outline btn-xs btn-preset-hypo" 
+                        data-conclusion="Account alice was compromised via brute-force attack." 
+                        data-events="EVT-001, EVT-002, EVT-003">Auth: Brute-force Login (EVT-001..003)</button>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm" id="btnEvaluateCustom">Run Stress Test on Hypothesis</button>
+        </div>
+    </form>
+    
+    <!-- Custom Evaluation Result Box -->
+    <div id="customResultContainer" style="display: none; margin-top: 14px; background: var(--bg-surface-elevated); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <strong style="color: var(--accent-cyan); font-size: 13px;">Hypothesis Stress Test Result</strong>
+            <span id="customStatusBadge" class="stress-badge stress-insufficient">Insufficient evidence</span>
+        </div>
+        <p id="customStatusReason" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;"></p>
+        <div id="customWarningsList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <!-- Left Column: Findings Evaluation List -->
+    <div class="card" style="margin-bottom: 0;">
+        <div class="card-header">
+            <span class="card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+                Incident Correlation Findings
+            </span>
+            <span class="pill pill-observed" id="findingsCountBadge">Loading...</span>
+        </div>
+        <div class="table-container" style="max-height: 650px; overflow-y: auto;">
+            <table class="dtm-table">
+                <thead>
+                    <tr>
+                        <th>Finding ID</th>
+                        <th>Rule / Statement</th>
+                        <th>Stress Test Status</th>
+                        <th style="text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="findingsStressTableBody">
+                    <tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 24px;">Running stress tests on case findings...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Right Column: Finding Inspection & Evidence Breakdown -->
+    <div class="card" style="margin-bottom: 0; min-height: 500px;">
+        <div class="card-header">
+            <span class="card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                Detailed Stress Test Breakdown
+            </span>
+            <span id="detailStatusBadge" class="stress-badge stress-supported">Select finding</span>
+        </div>
+
+        <div id="noFindingSelectedPrompt" style="text-align: center; color: var(--text-muted); padding: 50px 20px;">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 12px; opacity: 0.4;">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                <path d="M12 8v4"></path>
+                <path d="M12 16h.01"></path>
+            </svg>
+            <p>Select any correlation finding on the left to inspect its evidence breakdown, contradictory telemetry checks, and triggered analytical warnings.</p>
+        </div>
+
+        <div id="findingDetailPanel" style="display: none; flex-direction: column; gap: 16px;">
+            <!-- Finding Statement Header -->
+            <div style="background: var(--bg-surface-elevated); padding: 12px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span id="detailFindingId" style="font-family: var(--font-mono); font-weight: 700; color: var(--accent-cyan); font-size: 13px;"></span>
+                    <span id="detailRuleId" style="font-size: 11px; color: var(--text-muted);"></span>
+                </div>
+                <div id="detailExplanation" style="font-size: 13px; color: var(--text-primary); line-height: 1.5;"></div>
+                <div id="detailStatusReason" style="font-size: 11px; color: var(--text-secondary); margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--border-color);"></div>
+            </div>
+
+            <!-- Triggered Warnings Section -->
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <strong style="font-size: 12px; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px;">Triggered Analytical Warnings & Gaps</strong>
+                    <span id="warningsCountBadge" class="pill pill-inferred">0 Warnings</span>
+                </div>
+                <div id="warningsListContainer" style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="font-size: 12px; color: var(--text-muted); padding: 8px;">No warnings triggered. Conclusion is well-supported.</div>
+                </div>
+            </div>
+
+            <!-- Supporting Evidence Records Table -->
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <strong style="font-size: 12px; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px;">Linked Supporting Evidence Records</strong>
+                    <span id="supportingCountBadge" class="pill pill-observed">0 Records</span>
+                </div>
+                <div class="table-container" style="max-height: 220px; overflow-y: auto;">
+                    <table class="dtm-table">
+                        <thead>
+                            <tr>
+                                <th>Event ID</th>
+                                <th>Timestamp</th>
+                                <th>Source</th>
+                                <th>Actor / Object</th>
+                                <th style="text-align: right;">Timeline</th>
+                            </tr>
+                        </thead>
+                        <tbody id="supportingEventsTableBody">
+                            <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No supporting events linked.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Contradictory Records (if any) -->
+            <div id="contradictorySection" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <strong style="font-size: 12px; color: #EF4444; text-transform: uppercase; letter-spacing: 0.5px;">Contradictory Telemetry Detected</strong>
+                    <span class="stress-badge stress-contradictory">Conflict</span>
+                </div>
+                <div class="table-container">
+                    <table class="dtm-table">
+                        <thead>
+                            <tr>
+                                <th>Event ID</th>
+                                <th>Timestamp</th>
+                                <th>Source</th>
+                                <th>Event Description</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contradictoryEventsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="/static/js/stress_test.js"></script>
+{% endblock %}

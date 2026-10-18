@@ -65,6 +65,7 @@ def load_demo_case(case_id: str = Config.DEMO_CASE_ID) -> dict:
     execute_write(conn, "DELETE FROM events WHERE case_id = ?", (actual_case_id,))
     execute_write(conn, "DELETE FROM evidence_files WHERE case_id = ?", (actual_case_id,))
     execute_write(conn, "DELETE FROM investigation_notes WHERE case_id = ?", (actual_case_id,))
+    execute_write(conn, "DELETE FROM investigation_snapshots WHERE case_id = ?", (actual_case_id,))
     execute_write(conn, "DELETE FROM cases WHERE id = ?", (actual_case_id,))
 
     # 2. Insert case record

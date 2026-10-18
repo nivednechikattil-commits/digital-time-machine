@@ -32,6 +32,8 @@ from engine.graph_generator import generate_relationship_graph
 from engine.investigator import get_all_investigative_inquiries, answer_investigative_query
 from engine.report_generator import generate_investigation_report_data
 from engine.evidence_dna import get_evidence_dna
+from engine.stress_tester import stress_test_finding, stress_test_case, stress_test_custom_conclusion
+from services.snapshot_service import create_snapshot, list_snapshots, get_snapshot, compare_snapshots
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config.from_object(Config)
@@ -129,6 +131,18 @@ def settings_page():
     case = get_case(case_id)
     cases = list_cases()
     return render_template("settings.html", case_id=case_id, case=case, cases=cases, active_tab="settings")
+
+@app.route("/stress-test")
+def stress_test_page():
+    case_id = get_current_case_id()
+    metrics = get_case_metrics(case_id)
+    return render_template("stress_test.html", case_id=case_id, metrics=metrics, active_tab="stress-test")
+
+@app.route("/time-machine")
+def time_machine_page():
+    case_id = get_current_case_id()
+    metrics = get_case_metrics(case_id)
+    return render_template("time_machine.html", case_id=case_id, metrics=metrics, active_tab="time-machine")
 
 
 # ==========================================
@@ -446,6 +460,110 @@ def api_report_export():
             mimetype="text/html",
             headers={"Content-Disposition": f"attachment; filename=investigation_report_{case_id}.html"}
         )
+
+
+# ==========================================
+# CONCLUSION STRESS TESTER API
+# ==========================================
+
+@app.route("/api/stress-test")
+def api_stress_test():
+    """Evaluates conclusion stress testing across case findings or for a single finding."""
+    case_id = get_current_case_id()
+    finding_id = request.args.get("finding_id")
+    if finding_id:
+        from database.db import get_db_connection, query_one
+        conn = get_db_connection(Config.DATABASE_PATH)
+        finding = query_one(conn, "SELECT * FROM correlation_findings WHERE case_id = ? AND id = ?", (case_id, finding_id))
+        conn.close()
+        if not finding:
+            return jsonify({"error": f"Finding '{finding_id}' not found in case '{case_id}'."}), 404
+        result = stress_test_finding(case_id, finding)
+        return jsonify(result)
+    result = stress_test_case(case_id)
+    return jsonify(result)
+
+@app.route("/api/stress-test/<finding_id>")
+def api_stress_test_detail(finding_id):
+    """Stress tests a specific correlation finding."""
+    case_id = get_current_case_id()
+    from database.db import get_db_connection, query_one
+    conn = get_db_connection(Config.DATABASE_PATH)
+    finding = query_one(conn, "SELECT * FROM correlation_findings WHERE case_id = ? AND id = ?", (case_id, finding_id))
+    conn.close()
+    if not finding:
+        return jsonify({"error": f"Finding '{finding_id}' not found in case '{case_id}'."}), 404
+    result = stress_test_finding(case_id, finding)
+    return jsonify(result)
+
+@app.route("/api/stress-test/custom", methods=["POST"])
+def api_stress_test_custom():
+    """Evaluates an ad-hoc investigator conclusion against specified event IDs."""
+    data = request.get_json() or {}
+    case_id = data.get("case_id") or get_current_case_id()
+    conclusion_text = data.get("conclusion") or data.get("hypothesis") or ""
+    event_ids = data.get("event_ids") or []
+    if not conclusion_text.strip():
+        return jsonify({"error": "Conclusion statement cannot be empty."}), 400
+    result = stress_test_custom_conclusion(case_id, conclusion_text.strip(), event_ids)
+    return jsonify(result)
+
+
+# ==========================================
+# INVESTIGATION TIME MACHINE SNAPSHOTS API
+# ==========================================
+
+@app.route("/api/snapshots", methods=["GET", "POST"])
+def api_snapshots():
+    """Lists saved analysis snapshots or creates a new snapshot."""
+    case_id = get_current_case_id()
+    if request.method == "POST":
+        data = request.get_json() or {}
+        name = data.get("name")
+        note = data.get("note", "")
+        rule_version = data.get("rule_version", "v1.2.0-deterministic")
+        c_id = data.get("case_id") or case_id
+        if not name or not name.strip():
+            return jsonify({"error": "Snapshot name is required."}), 400
+        try:
+            snapshot = create_snapshot(c_id, name, note=note, rule_version=rule_version)
+            return jsonify({"success": True, "snapshot": snapshot}), 201
+        except Exception as ex:
+            return jsonify({"error": str(ex)}), 400
+
+    snapshots = list_snapshots(case_id)
+    return jsonify({"case_id": case_id, "count": len(snapshots), "snapshots": snapshots})
+
+@app.route("/api/snapshots/compare", methods=["GET", "POST"])
+def api_snapshots_compare():
+    """Compares two investigation snapshots and returns diff breakdown."""
+    case_id = get_current_case_id()
+    if request.method == "POST":
+        data = request.get_json() or {}
+        snap_a = data.get("snapshot_a_id") or data.get("base_snapshot_id")
+        snap_b = data.get("snapshot_b_id") or data.get("compare_snapshot_id")
+        c_id = data.get("case_id") or case_id
+    else:
+        snap_a = request.args.get("snapshot_a_id") or request.args.get("base_id")
+        snap_b = request.args.get("snapshot_b_id") or request.args.get("compare_id")
+        c_id = request.args.get("case_id") or case_id
+
+    if not snap_a or not snap_b:
+        return jsonify({"error": "Both 'snapshot_a_id' and 'snapshot_b_id' are required."}), 400
+
+    try:
+        diff = compare_snapshots(c_id, snap_a, snap_b)
+        return jsonify(diff)
+    except Exception as ex:
+        return jsonify({"error": str(ex)}), 400
+
+@app.route("/api/snapshots/<snapshot_id>")
+def api_snapshot_detail(snapshot_id):
+    """Retrieves full snapshot details and verifies SHA-256 integrity."""
+    snapshot = get_snapshot(snapshot_id)
+    if not snapshot:
+        return jsonify({"error": f"Snapshot '{snapshot_id}' not found."}), 404
+    return jsonify(snapshot)
 
 
 if __name__ == "__main__":
