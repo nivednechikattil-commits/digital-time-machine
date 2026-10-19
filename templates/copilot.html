@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}AI Investigation Copilot — {{ metrics.case.name if metrics.case else 'Forensics' }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <span style="color: var(--accent-cyan); margin-right: 6px;">🤖</span>
+            Evidence-Grounded AI Investigation Copilot
+        </h1>
+        <p class="page-subtitle">Server-side forensic intelligence assistant answering inquiries strictly from verified case telemetry with validated evidence citations</p>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+        <span class="pill pill-observed" style="font-size: 11px;">Active Case: {{ case_id }}</span>
+        <button id="btnClearChat" class="btn btn-outline btn-sm" title="Clear chat history in current browser session (does not delete forensic evidence)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            Clear Session Chat
+        </button>
+    </div>
+</div>
+
+<!-- Provider Status Banner (Configured vs Setup Required) -->
+<div id="providerStatusBanner" class="card" style="margin-bottom: 20px; border-left: 4px solid var(--accent-cyan); padding: 12px 16px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span id="providerStatusDot" class="dot-secure" style="width: 10px; height: 10px; background-color: {{ '#10B981' if provider_status.configured else '#F59E0B' }};"></span>
+            <div>
+                <strong id="providerStatusTitle" style="color: var(--text-primary); font-size: 13px;">
+                    {{ 'Provider Active: OpenAI (' ~ provider_status.model ~ ')' if provider_status.configured else 'AI Provider Setup Required' }}
+                </strong>
+                <div id="providerStatusDesc" style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">
+                    {{ provider_status.status_message }}
+                </div>
+            </div>
+        </div>
+        <div style="font-size: 11px; font-family: var(--font-mono); color: var(--text-muted);">
+            Forensic Grounding: <span style="color: #10B981; font-weight: 700;">STRICT ISOLATION</span>
+        </div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; align-items: start;">
+    <!-- Left Column: Interactive Chat Interface -->
+    <div class="card" style="margin-bottom: 0; display: flex; flex-direction: column; height: 680px; padding: 0; overflow: hidden;">
+        <div class="card-header" style="padding: 14px 18px; margin-bottom: 0; background: var(--bg-surface-elevated);">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="card-title" style="margin-bottom: 0;">Investigation Copilot Chat</span>
+                <span class="pill pill-inferred" id="sessionMsgCountBadge">0 Messages</span>
+            </div>
+            <span class="pill pill-observed" style="font-size: 10px;">Read-Only Forensic Access</span>
+        </div>
+
+        <!-- Chat Messages Scroll Container -->
+        <div id="copilotMessagesContainer" style="flex: 1; padding: 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
+            <!-- Initial Empty State -->
+            <div id="chatEmptyState" style="text-align: center; color: var(--text-muted); padding: 60px 20px;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 14px; opacity: 0.4; color: var(--accent-cyan);">
+                    <path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"></path>
+                    <path d="M16 11v2a4 4 0 0 1-8 0v-2"></path>
+                    <circle cx="9" cy="18" r="1"></circle>
+                    <circle cx="15" cy="18" r="1"></circle>
+                    <path d="M10 22h4"></path>
+                </svg>
+                <h3 style="font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">How can I assist your investigation?</h3>
+                <p style="font-size: 12px; max-width: 460px; margin: 0 auto; line-height: 1.6; color: var(--text-secondary);">
+                    Ask forensic questions regarding chronological sequence, supporting artifacts, contradictory observations, or snapshot diffs. Every factual claim is validated against real database records.
+                </p>
+            </div>
+        </div>
+
+        <!-- Question Input Bar -->
+        <div style="padding: 14px 18px; background: var(--bg-surface-elevated); border-top: 1px solid var(--border-color);">
+            <form id="copilotChatForm" style="display: flex; gap: 10px; align-items: flex-end;">
+                <textarea id="copilotQuestionInput" class="btn btn-outline" 
+                       rows="1"
+                       style="flex: 1; text-align: left; background: var(--bg-base); font-size: 13px; resize: none; min-height: 40px; max-height: 120px; line-height: 1.45; padding: 10px 14px; font-family: var(--font-sans); border-radius: var(--radius-sm);" 
+                       placeholder="Ask a forensic question (Press Enter to send, Shift+Enter for newline)..." 
+                       maxlength="500" required></textarea>
+                <button type="submit" id="btnSendQuestion" class="btn btn-primary btn-sm" style="height: 40px; padding: 0 18px; display: flex; align-items: center; gap: 6px; flex-shrink: 0;" title="Send question (Enter)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                    <span>Send</span>
+                </button>
+            </form>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: 11px; color: var(--text-muted);">
+                <span>Press <strong>Enter</strong> to send &bull; <strong>Shift+Enter</strong> for newline &bull; Verified against SQLite</span>
+                <span id="charCounter">0 / 500</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Suggested Inquiries & Verified Citations Panel -->
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+        <!-- Suggested Questions Card -->
+        <div class="card" style="margin-bottom: 0;">
+            <div class="card-header">
+                <span class="card-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    Suggested Case Inquiries
+                </span>
+                <span class="pill pill-observed">Click to Ask</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <button type="button" class="btn btn-outline btn-xs btn-suggested-q" data-q="Summarize the incident chronologically.">
+                    1. Summarize the incident chronologically.
+                </button>
+                <button type="button" class="btn btn-outline btn-xs btn-suggested-q" data-q="What evidence supports the customer database finding?">
+                    2. What evidence supports this finding?
+                </button>
+                <button type="button" class="btn btn-outline btn-xs btn-suggested-q" data-q="What happened before the sensitive database file was accessed?">
+                    3. What happened before the selected event?
+                </button>
+                <button type="button" class="btn btn-outline btn-xs btn-suggested-q" data-q="Which records contradict the conclusion that data was exfiltrated to USB?">
+                    4. Which records contradict this conclusion?
+                </button>
+                <button type="button" class="btn btn-outline btn-xs btn-suggested-q" data-q="What important questions remain unanswered in collected telemetry?">
+                    5. What important questions remain unanswered?
+                </button>
+                <button type="button" class="btn btn-outline btn-xs btn-suggested-q" data-q="Explain the changes between the investigation snapshots.">
+                    6. Explain changes between investigation snapshots.
+                </button>
+                <button type="button" class="btn btn-outline btn-xs btn-suggested-q" data-q="Which additional evidence could help resolve the uncertainty regarding USB transfer?">
+                    7. Which additional evidence could help resolve uncertainty?
+                </button>
+            </div>
+        </div>
+
+        <!-- Latest Verified Citations Card -->
+        <div class="card" style="margin-bottom: 0;">
+            <div class="card-header">
+                <span class="card-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                    </svg>
+                    Validated Evidence Citations
+                </span>
+                <span id="activeCitationsCountBadge" class="pill pill-observed">0 Citations</span>
+            </div>
+            <div id="verifiedCitationsContainer" style="display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto;">
+                <div style="font-size: 12px; color: var(--text-muted); text-align: center; padding: 20px;">
+                    Citations generated by the Copilot will appear here with direct links to the Timeline and Evidence Explorer.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/copilot.js"></script>
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- Backward compatibility hook -->
+{% endblock %}
+

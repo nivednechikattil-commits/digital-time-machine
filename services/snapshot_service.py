@@ -501,3 +501,4 @@ def compare_snapshots(case_id: str, snapshot_a_id: str, snapshot_b_id: str) -> d
         },
         "newly_detected_contradictions": new_contradictions
     }
+

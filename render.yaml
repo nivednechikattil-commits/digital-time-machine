@@ -11,4 +11,14 @@ services:
         value: "1"
       - key: FLASK_DEBUG
         value: "0"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: "gpt-4o-mini"
+      - key: AI_PROVIDER
+        value: "openai"
+      - key: AI_REQUEST_TIMEOUT
+        value: "25"
+      - key: AI_MAX_OUTPUT_TOKENS
+        value: "1024"
 

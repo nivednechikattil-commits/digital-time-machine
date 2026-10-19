@@ -18,3 +18,10 @@ class Config:
     DEMO_CASE_NAME = "CASE-001: MISSING CUSTOMER DATABASE"
     LEGACY_DEMO_CASE_ID = "CASE-2026-001"
 
+    # AI Investigation Copilot Configuration (Server-Side Secrets)
+    AI_PROVIDER = os.environ.get("AI_PROVIDER", "openai").lower()
+    OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+    OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+    AI_REQUEST_TIMEOUT = int(os.environ.get("AI_REQUEST_TIMEOUT", "25"))
+    AI_MAX_OUTPUT_TOKENS = int(os.environ.get("AI_MAX_OUTPUT_TOKENS", "1024"))
+

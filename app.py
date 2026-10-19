@@ -34,6 +34,11 @@ from engine.report_generator import generate_investigation_report_data
 from engine.evidence_dna import get_evidence_dna
 from engine.stress_tester import stress_test_finding, stress_test_case, stress_test_custom_conclusion
 from services.snapshot_service import create_snapshot, list_snapshots, get_snapshot, compare_snapshots
+from engine.ai_provider import (
+    get_ai_provider, AIProviderError, AIProviderAuthError,
+    AIProviderRateLimitError, AIProviderTimeoutError
+)
+from engine.copilot_engine import answer_copilot_inquiry
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config.from_object(Config)
@@ -58,6 +63,7 @@ def get_current_case_id() -> str:
 # ==========================================
 
 @app.route("/")
+@app.route("/dashboard")
 def dashboard_page():
     case_id = get_current_case_id()
     metrics = get_case_metrics(case_id)
@@ -91,6 +97,7 @@ def graph_page():
     return render_template("incident_graph.html", case_id=case_id, metrics=metrics, active_tab="graph")
 
 @app.route("/ghost")
+@app.route("/ghost-evidence")
 def ghost_page():
     case_id = get_current_case_id()
     metrics = get_case_metrics(case_id)
@@ -143,6 +150,13 @@ def time_machine_page():
     case_id = get_current_case_id()
     metrics = get_case_metrics(case_id)
     return render_template("time_machine.html", case_id=case_id, metrics=metrics, active_tab="time-machine")
+
+@app.route("/copilot")
+def copilot_page():
+    case_id = get_current_case_id()
+    metrics = get_case_metrics(case_id)
+    provider_status = get_ai_provider().get_status()
+    return render_template("copilot.html", case_id=case_id, metrics=metrics, provider_status=provider_status, active_tab="copilot")
 
 
 # ==========================================
@@ -564,6 +578,61 @@ def api_snapshot_detail(snapshot_id):
     if not snapshot:
         return jsonify({"error": f"Snapshot '{snapshot_id}' not found."}), 404
     return jsonify(snapshot)
+
+
+# ==========================================
+# EVIDENCE-GROUNDED AI INVESTIGATION COPILOT API
+# ==========================================
+
+@app.route("/api/copilot/status")
+def api_copilot_status():
+    """Returns AI Copilot provider configuration and availability status."""
+    status = get_ai_provider().get_status()
+    return jsonify(status)
+
+@app.route("/api/copilot/chat", methods=["POST"])
+def api_copilot_chat():
+    """
+    Submits an investigator question to the evidence-grounded AI Copilot.
+    Validates input, limits context, validates citations server-side,
+    and returns factual citations with timeline links.
+    """
+    data = request.get_json() or {}
+    question = (data.get("question") or data.get("query") or "").strip()
+    case_id = data.get("case_id") or get_current_case_id()
+    chat_history = data.get("history") or []
+
+    # Enforce access control / case existence
+    case = get_case(case_id)
+    if not case:
+        return jsonify({"error": f"Case '{case_id}' not found.", "code": "CASE_NOT_FOUND"}), 404
+
+    client_ip = request.environ.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip() or request.environ.get("REMOTE_ADDR", "127.0.0.1")
+
+    try:
+        result = answer_copilot_inquiry(
+            case_id=case_id,
+            question=question,
+            chat_history=chat_history,
+            client_ip=client_ip
+        )
+        return jsonify(result), 200
+    except ValueError as ve:
+        return jsonify({"error": str(ve), "code": "VALIDATION_ERROR"}), 400
+    except AIProviderAuthError as ae:
+        return jsonify({
+            "error": str(ae),
+            "code": "PROVIDER_UNAVAILABLE",
+            "setup_help": "Set OPENAI_API_KEY environment variable on the server to enable AI Copilot."
+        }), 503
+    except AIProviderRateLimitError as re:
+        return jsonify({"error": str(re), "code": "RATE_LIMIT"}), 429
+    except AIProviderTimeoutError as te:
+        return jsonify({"error": str(te), "code": "TIMEOUT"}), 504
+    except AIProviderError as pe:
+        return jsonify({"error": str(pe), "code": "PROVIDER_ERROR"}), 502
+    except Exception as ex:
+        return jsonify({"error": f"Unexpected error processing Copilot request: {str(ex)}", "code": "INTERNAL_ERROR"}), 500
 
 
 if __name__ == "__main__":

@@ -6,9 +6,9 @@
 <div class="page-header">
     <div>
         <h1 class="page-title">Command Center</h1>
-        <p class="page-subtitle">Real-time forensic telemetry and incident reconstruction overview</p>
+        <p class="page-subtitle">Real-time forensic telemetry, timeline correlation, and incident reconstruction overview</p>
     </div>
-    <div style="display: flex; gap: 10px;">
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
         <a href="/timeline?case_id={{ case_id }}" class="btn btn-primary">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polygon points="5 3 19 12 5 21 5 3"></polygon>
@@ -26,7 +26,7 @@
     </div>
 </div>
 
-<!-- Primary Derived Metrics Grid -->
+<!-- Primary Derived Metrics Grid (4-Column Command Center) -->
 <div class="metrics-grid">
     <div class="metric-card">
         <span class="metric-label">Recorded Events</span>
@@ -45,7 +45,7 @@
     </div>
     <div class="metric-card">
         <span class="metric-label">Ghost Evidence Gaps</span>
-        <span class="metric-number" style="color: var(--accent-cyan);">{{ metrics.ghost_anomalies_count }}</span>
+        <span class="metric-number" style="color: var(--accent-emerald);">{{ metrics.ghost_anomalies_count }}</span>
         <span class="metric-sub">Unrecorded artifact windows</span>
     </div>
 </div>
@@ -64,11 +64,11 @@
                 </span>
                 <span class="pill pill-observed">ACTIVE INVESTIGATION</span>
             </div>
-            <p style="color: var(--text-secondary); margin-bottom: 14px; line-height: 1.6;">
+            <p style="color: var(--text-secondary); margin-bottom: 14px; line-height: 1.6; font-size: 13px;">
                 {{ metrics.case.description if metrics.case else 'Synthetic cyber incident reconstruction platform.' }}
             </p>
-            <div style="background-color: var(--bg-surface-elevated); padding: 12px; border-radius: 4px; font-size: 12px; border-left: 3px solid var(--accent-cyan);">
-                <strong>Forensic Integrity Note:</strong> All telemetry displayed is normalized from ingested CSV and JSON evidence. 
+            <div style="background-color: var(--bg-surface-elevated); padding: 12px 14px; border-radius: var(--radius-sm); font-size: 11.5px; border-left: 3px solid var(--accent-emerald); line-height: 1.5;">
+                <strong style="color: var(--text-bright);">Forensic Integrity Note:</strong> All telemetry displayed is normalized from ingested CSV and JSON evidence. 
                 Correlations denote chronological alignment and heuristic rules; they do not imply proven intent.
             </div>
         </div>
@@ -81,7 +81,7 @@
                     </svg>
                     Top Correlation Findings ({{ metrics.correlation_findings_count }})
                 </span>
-                <a href="/timeline?case_id={{ case_id }}" style="font-size: 11px; color: var(--accent-blue); text-decoration: none;">View in Timeline →</a>
+                <a href="/timeline?case_id={{ case_id }}" style="font-size: 11px; color: var(--accent-mint); text-decoration: none; font-weight: 600;">View in Timeline →</a>
             </div>
             <div class="table-container">
                 <table class="dtm-table">
@@ -98,13 +98,13 @@
                     <tbody>
                         {% for f in metrics.findings[:5] %}
                         <tr class="finding-row" data-id="{{ f.id }}" title="Click to inspect Evidence DNA">
-                            <td class="mono" style="color: var(--accent-cyan); font-weight: 600;">{{ f.id }}</td>
+                            <td class="mono" style="color: var(--accent-emerald); font-weight: 600;">{{ f.id }}</td>
                             <td>
                                 <span class="pill badge-sev-{{ f.severity }}">{{ f.severity }}</span>
                             </td>
                             <td><strong>{{ f.rule_name }}</strong></td>
                             <td class="mono">{{ f.supporting_event_ids }}</td>
-                            <td class="mono" style="font-size: 11px;">{{ f.start_time[11:19] }} → {{ f.end_time[11:19] }}</td>
+                            <td class="mono" style="font-size: 11px; color: var(--text-secondary);">{{ f.start_time[11:19] }} → {{ f.end_time[11:19] }}</td>
                             <td style="text-align: right;">
                                 <button type="button" class="btn btn-outline btn-xs btn-inspect-dna" data-id="{{ f.id }}">
                                     Inspect DNA 🧬
@@ -112,7 +112,7 @@
                             </td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No correlation findings recorded.</td></tr>
+                        <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">No correlation findings recorded.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -125,7 +125,7 @@
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <span style="font-size: 16px;">🧬</span>
                     <span class="card-title">Evidence DNA & Details</span>
-                    <span id="dnaFindingId" class="mono" style="color: var(--accent-cyan); font-weight: 700; font-size: 13px;"></span>
+                    <span id="dnaFindingId" class="mono" style="color: var(--accent-emerald); font-weight: 700; font-size: 13px;"></span>
                 </div>
                 <div style="display: flex; gap: 6px; align-items: center;">
                     <span id="dnaSeverityBadge" class="pill"></span>
@@ -139,47 +139,56 @@
         </div>
     </div>
 
-    <!-- Right Column: Source & Severity Breakdown & Notes -->
+    <!-- Right Column: Source & Severity Breakdown & Quick Tools -->
     <div>
+        <!-- Telemetry Sources with Proportional Progress Bars -->
         <div class="card">
             <div class="card-header">
                 <span class="card-title">Telemetry Sources</span>
             </div>
             <div style="display: flex; flex-direction: column; gap: 8px;">
                 {% for src, count in metrics.source_counts.items() %}
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background-color: var(--bg-surface-elevated); border-radius: 4px;">
-                    <span style="text-transform: uppercase; font-size: 11px; font-weight: 600; color: var(--text-secondary);">{{ src }}</span>
-                    <span class="mono" style="font-weight: 700; color: var(--accent-cyan);">{{ count }}</span>
+                {% set pct = ((count / metrics.total_events * 100)|int) if metrics.total_events > 0 else 0 %}
+                <div class="source-bar-wrapper">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="text-transform: uppercase; font-size: 11px; font-weight: 600; color: var(--text-secondary);">{{ src }}</span>
+                        <span class="mono" style="font-weight: 700; color: var(--accent-emerald); font-size: 12px;">{{ count }} <span style="font-size: 10px; color: var(--text-muted); font-weight: normal;">({{ pct }}%)</span></span>
+                    </div>
+                    <div class="source-bar-track">
+                        <div class="source-bar-fill" style="width: {{ pct }}%;"></div>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
         </div>
 
+        <!-- Severity Breakdown 4-Cell Matrix -->
         <div class="card">
             <div class="card-header">
                 <span class="card-title">Severity Breakdown</span>
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                <div style="padding: 8px; border-radius: 4px; border: 1px solid rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.05); text-align: center;">
-                    <span style="font-size: 10px; color: var(--sev-critical); font-weight: 700;">CRITICAL</span>
-                    <div class="mono" style="font-size: 18px; font-weight: 700; color: var(--sev-critical);">{{ metrics.severity_counts.critical }}</div>
+                <div style="padding: 10px 8px; border-radius: var(--radius-sm); border: 1px solid rgba(239, 68, 68, 0.35); background: rgba(239, 68, 68, 0.08); text-align: center;">
+                    <span style="font-size: 10px; color: var(--sev-critical); font-weight: 700; letter-spacing: 0.5px;">CRITICAL</span>
+                    <div class="mono" style="font-size: 20px; font-weight: 700; color: var(--sev-critical); margin-top: 2px;">{{ metrics.severity_counts.critical }}</div>
                 </div>
-                <div style="padding: 8px; border-radius: 4px; border: 1px solid rgba(249, 115, 22, 0.3); background: rgba(249, 115, 22, 0.05); text-align: center;">
-                    <span style="font-size: 10px; color: var(--sev-high); font-weight: 700;">HIGH</span>
-                    <div class="mono" style="font-size: 18px; font-weight: 700; color: var(--sev-high);">{{ metrics.severity_counts.high }}</div>
+                <div style="padding: 10px 8px; border-radius: var(--radius-sm); border: 1px solid rgba(249, 115, 22, 0.35); background: rgba(249, 115, 22, 0.08); text-align: center;">
+                    <span style="font-size: 10px; color: var(--sev-high); font-weight: 700; letter-spacing: 0.5px;">HIGH</span>
+                    <div class="mono" style="font-size: 20px; font-weight: 700; color: var(--sev-high); margin-top: 2px;">{{ metrics.severity_counts.high }}</div>
                 </div>
-                <div style="padding: 8px; border-radius: 4px; border: 1px solid rgba(245, 158, 11, 0.3); background: rgba(245, 158, 11, 0.05); text-align: center;">
-                    <span style="font-size: 10px; color: var(--sev-medium); font-weight: 700;">MEDIUM</span>
-                    <div class="mono" style="font-size: 18px; font-weight: 700; color: var(--sev-medium);">{{ metrics.severity_counts.medium }}</div>
+                <div style="padding: 10px 8px; border-radius: var(--radius-sm); border: 1px solid rgba(245, 158, 11, 0.35); background: rgba(245, 158, 11, 0.08); text-align: center;">
+                    <span style="font-size: 10px; color: var(--sev-medium); font-weight: 700; letter-spacing: 0.5px;">MEDIUM</span>
+                    <div class="mono" style="font-size: 20px; font-weight: 700; color: var(--sev-medium); margin-top: 2px;">{{ metrics.severity_counts.medium }}</div>
                 </div>
-                <div style="padding: 8px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.05); text-align: center;">
-                    <span style="font-size: 10px; color: var(--sev-low); font-weight: 700;">LOW</span>
-                    <div class="mono" style="font-size: 18px; font-weight: 700; color: var(--sev-low);">{{ metrics.severity_counts.low }}</div>
+                <div style="padding: 10px 8px; border-radius: var(--radius-sm); border: 1px solid rgba(16, 185, 129, 0.35); background: rgba(16, 185, 129, 0.08); text-align: center;">
+                    <span style="font-size: 10px; color: var(--sev-low); font-weight: 700; letter-spacing: 0.5px;">LOW</span>
+                    <div class="mono" style="font-size: 20px; font-weight: 700; color: var(--sev-low); margin-top: 2px;">{{ metrics.severity_counts.low }}</div>
                 </div>
             </div>
         </div>
 
-        <div class="card" style="border-left: 3px solid var(--accent-cyan);">
+        <!-- Advanced Forensics Quick Launch -->
+        <div class="card" style="border-left: 3px solid var(--accent-emerald);">
             <div class="card-header">
                 <span class="card-title">Advanced Forensics</span>
                 <span class="pill pill-inferred">Analysis Tools</span>
@@ -187,31 +196,36 @@
             <div style="display: flex; flex-direction: column; gap: 8px;">
                 <a href="/stress-test?case_id={{ case_id }}" class="btn btn-outline btn-sm" style="display: flex; justify-content: space-between; align-items: center; text-decoration: none;">
                     <span>🛡️ Conclusion Stress Tester</span>
-                    <span style="font-size: 11px; color: var(--accent-cyan);">Verify Claims →</span>
+                    <span style="font-size: 11px; color: var(--accent-emerald); font-weight: 600;">Verify Claims →</span>
                 </a>
                 <a href="/time-machine?case_id={{ case_id }}" class="btn btn-outline btn-sm" style="display: flex; justify-content: space-between; align-items: center; text-decoration: none;">
                     <span>⏳ Investigation Time Machine</span>
-                    <span style="font-size: 11px; color: var(--accent-cyan);">Compare States →</span>
+                    <span style="font-size: 11px; color: var(--accent-emerald); font-weight: 600;">Compare States →</span>
+                </a>
+                <a href="/copilot?case_id={{ case_id }}" class="btn btn-outline btn-sm" style="display: flex; justify-content: space-between; align-items: center; text-decoration: none;">
+                    <span>🤖 AI Investigation Copilot</span>
+                    <span style="font-size: 11px; color: var(--accent-emerald); font-weight: 600;">Ask Copilot →</span>
                 </a>
             </div>
         </div>
 
+        <!-- Recent Investigator Notes -->
         <div class="card">
             <div class="card-header">
                 <span class="card-title">Recent Investigator Log</span>
-                <a href="/investigate?case_id={{ case_id }}" style="font-size: 11px; color: var(--accent-blue); text-decoration: none;">Add Note →</a>
+                <a href="/investigate?case_id={{ case_id }}" style="font-size: 11px; color: var(--accent-mint); text-decoration: none; font-weight: 600;">Add Note →</a>
             </div>
             <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px;">
                 {% for note in metrics.recent_notes %}
-                <div style="background-color: var(--bg-surface-elevated); padding: 8px; border-radius: 4px;">
+                <div style="background-color: var(--bg-surface-elevated); padding: 8px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
                     <div style="display: flex; justify-content: space-between; color: var(--text-muted); font-size: 10px; margin-bottom: 4px;">
-                        <span>{{ note.author }}</span>
+                        <span style="font-weight: 600; color: var(--text-secondary);">{{ note.author }}</span>
                         <span class="mono">{{ note.timestamp }}</span>
                     </div>
-                    <div style="color: var(--text-primary);">{{ note.note }}</div>
+                    <div style="color: var(--text-primary); line-height: 1.4;">{{ note.note }}</div>
                 </div>
                 {% else %}
-                <div style="color: var(--text-muted); text-align: center;">No investigation notes recorded.</div>
+                <div style="color: var(--text-muted); text-align: center; padding: 12px;">No investigation notes recorded.</div>
                 {% endfor %}
             </div>
         </div>
@@ -222,5 +236,3 @@
 {% block scripts %}
 <script src="/static/js/evidence_dna.js"></script>
 {% endblock %}
-
-

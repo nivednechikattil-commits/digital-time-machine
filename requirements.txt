@@ -5,4 +5,5 @@ pytest>=8.0.0
 Jinja2>=3.1.2
 MarkupSafe>=2.1.5
 gunicorn>=21.2.0
-
+# Optional AI Copilot provider SDK (urllib.request fallback is built-in)
+openai>=1.0.0

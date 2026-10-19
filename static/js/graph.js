@@ -13,8 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const graphInspectorBody = document.getElementById('graphInspectorBody');
 
     const nodeColors = {
-        user: '#06B6D4',
-        device: '#10B981',
+        user: '#18D6A0',
+        device: '#36E6B5',
         file: '#F59E0B',
         website: '#38BDF8',
         network: '#EF4444'

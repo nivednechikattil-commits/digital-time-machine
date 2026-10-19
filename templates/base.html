@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Digital Time Machine{% endblock %} — Forensics Platform</title>
+    <title>{% block title %}Digital Time Machine{% endblock %} — Cyber Forensics & Intelligence</title>
     <link rel="stylesheet" href="/static/css/style.css">
     {% block extra_head %}{% endblock %}
 </head>
@@ -11,8 +11,17 @@
     <!-- Top Cyber Investigation Header Bar -->
     <header class="dtm-header">
         <div class="header-brand">
+            <!-- Mobile Menu Toggle Button -->
+            <button class="mobile-nav-toggle" id="btnMobileNavToggle" aria-label="Toggle navigation menu">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+
             <div class="brand-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="10"></circle>
                     <polyline points="12 6 12 12 16 14"></polyline>
                 </svg>
@@ -25,9 +34,10 @@
 
         <div class="header-case-status">
             <div class="case-badge">
+                <span class="badge-status-dot" title="Live Investigation Active"></span>
                 <span class="badge-label">CASE:</span>
                 <span class="badge-value" id="currentCaseName">{{ metrics.case.name if (metrics is defined and metrics and metrics.case) else 'The Missing Customer Database' }}</span>
-                <span class="badge-id">[{{ metrics.case.id if (metrics is defined and metrics and metrics.case) else 'CASE-2026-001' }}]</span>
+                <span class="badge-id">[{{ metrics.case.id if (metrics is defined and metrics and metrics.case) else (case_id or 'CASE-001') }}]</span>
             </div>
             <div class="case-range-badge">
                 <span class="range-dot"></span>
@@ -61,121 +71,155 @@
         </div>
     </header>
 
+    <!-- Mobile Drawer Backdrop -->
+    <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
+
     <!-- Main Workspace Container -->
     <div class="dtm-container">
         <!-- Sidebar Navigation -->
-        <nav class="dtm-sidebar">
-            <ul class="nav-menu">
-                <li class="nav-item {{ 'active' if active_tab == 'dashboard' else '' }}">
-                    <a href="/?case_id={{ case_id }}" class="nav-link">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="3" width="7" height="7"></rect>
-                            <rect x="14" y="3" width="7" height="7"></rect>
-                            <rect x="14" y="14" width="7" height="7"></rect>
-                            <rect x="3" y="14" width="7" height="7"></rect>
-                        </svg>
-                        <span>Command Center</span>
-                    </a>
-                </li>
-                <li class="nav-item {{ 'active' if active_tab == 'timeline' else '' }}">
-                    <a href="/timeline?case_id={{ case_id }}" class="nav-link">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg>
-                        <span>Rewindable Timeline</span>
-                    </a>
-                </li>
-                <li class="nav-item {{ 'active' if active_tab == 'state' else '' }}">
-                    <a href="/state?case_id={{ case_id }}" class="nav-link">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                            <line x1="8" y1="21" x2="16" y2="21"></line>
-                            <line x1="12" y1="17" x2="12" y2="21"></line>
-                        </svg>
-                        <span>System State</span>
-                    </a>
-                </li>
-                <li class="nav-item {{ 'active' if active_tab == 'evidence' else '' }}">
-                    <a href="/evidence?case_id={{ case_id }}" class="nav-link">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="17 8 12 3 7 8"></polyline>
-                            <line x1="12" y1="3" x2="12" y2="15"></line>
-                        </svg>
-                        <span>Evidence Explorer</span>
-                    </a>
-                </li>
-                <li class="nav-item {{ 'active' if active_tab == 'graph' else '' }}">
-                    <a href="/graph?case_id={{ case_id }}" class="nav-link">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="18" cy="5" r="3"></circle>
-                            <circle cx="6" cy="12" r="3"></circle>
-                            <circle cx="18" cy="19" r="3"></circle>
-                            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-                        </svg>
-                        <span>Incident Graph</span>
-                    </a>
-                </li>
-                <li class="nav-item {{ 'active' if active_tab == 'ghost' else '' }}">
-                    <a href="/ghost?case_id={{ case_id }}" class="nav-link">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M9 18h6"></path>
-                            <path d="M10 22h4"></path>
-                            <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"></path>
-                        </svg>
-                        <span>Ghost Evidence</span>
-                    </a>
-                </li>
-                <li class="nav-item {{ 'active' if active_tab == 'investigate' else '' }}">
-                    <a href="/investigate?case_id={{ case_id }}" class="nav-link">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                        </svg>
-                        <span>Investigator Mode</span>
-                    </a>
-                </li>
-                <li class="nav-item {{ 'active' if active_tab == 'stress-test' else '' }}">
-                    <a href="/stress-test?case_id={{ case_id }}" class="nav-link">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                            <path d="M12 8v4"></path>
-                            <path d="M12 16h.01"></path>
-                        </svg>
-                        <span>Conclusion Stress Tester</span>
-                    </a>
-                </li>
-                <li class="nav-item {{ 'active' if active_tab == 'time-machine' else '' }}">
-                    <a href="/time-machine?case_id={{ case_id }}" class="nav-link">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 8 14"></polyline>
-                            <path d="M3 12a9 9 0 0 1 15.5-6.3"></path>
-                        </svg>
-                        <span>Investigation Time Machine</span>
-                    </a>
-                </li>
-                <li class="nav-item {{ 'active' if active_tab == 'report' else '' }}">
-                    <a href="/report?case_id={{ case_id }}" class="nav-link">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
-                        </svg>
-                        <span>Investigation Report</span>
-                    </a>
-                </li>
-                <li class="nav-item {{ 'active' if active_tab == 'settings' else '' }}">
-                    <a href="/settings?case_id={{ case_id }}" class="nav-link">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="3"></circle>
-                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                        </svg>
-                        <span>Case Settings</span>
-                    </a>
-                </li>
-            </ul>
+        <nav class="dtm-sidebar" id="dtmSidebar">
+            <div>
+                <!-- Group 1: Command & Core Operations -->
+                <span class="nav-section-title">COMMAND & CORE</span>
+                <ul class="nav-menu">
+                    <li class="nav-item {{ 'active' if active_tab == 'dashboard' else '' }}">
+                        <a href="/?case_id={{ case_id }}" class="nav-link">
+                            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <rect x="3" y="3" width="7" height="7"></rect>
+                                <rect x="14" y="3" width="7" height="7"></rect>
+                                <rect x="14" y="14" width="7" height="7"></rect>
+                                <rect x="3" y="14" width="7" height="7"></rect>
+                            </svg>
+                            <span>Command Center</span>
+                        </a>
+                    </li>
+                    <li class="nav-item {{ 'active' if active_tab == 'timeline' else '' }}">
+                        <a href="/timeline?case_id={{ case_id }}" class="nav-link">
+                            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            <span>Rewindable Timeline</span>
+                        </a>
+                    </li>
+                    <li class="nav-item {{ 'active' if active_tab == 'state' else '' }}">
+                        <a href="/state?case_id={{ case_id }}" class="nav-link">
+                            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                                <line x1="8" y1="21" x2="16" y2="21"></line>
+                                <line x1="12" y1="17" x2="12" y2="21"></line>
+                            </svg>
+                            <span>System State</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Group 2: Evidence & Incident Graph -->
+                <span class="nav-section-title">EVIDENCE & GRAPH</span>
+                <ul class="nav-menu">
+                    <li class="nav-item {{ 'active' if active_tab == 'evidence' else '' }}">
+                        <a href="/evidence?case_id={{ case_id }}" class="nav-link">
+                            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            <span>Evidence Explorer</span>
+                        </a>
+                    </li>
+                    <li class="nav-item {{ 'active' if active_tab == 'graph' else '' }}">
+                        <a href="/graph?case_id={{ case_id }}" class="nav-link">
+                            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <circle cx="18" cy="5" r="3"></circle>
+                                <circle cx="6" cy="12" r="3"></circle>
+                                <circle cx="18" cy="19" r="3"></circle>
+                                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                            </svg>
+                            <span>Incident Graph</span>
+                        </a>
+                    </li>
+                    <li class="nav-item {{ 'active' if active_tab == 'ghost' else '' }}">
+                        <a href="/ghost?case_id={{ case_id }}" class="nav-link">
+                            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M9 18h6"></path>
+                                <path d="M10 22h4"></path>
+                                <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"></path>
+                            </svg>
+                            <span>Ghost Evidence</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Group 3: Analytical Intelligence & Verification -->
+                <span class="nav-section-title">ANALYTICAL INTELLIGENCE</span>
+                <ul class="nav-menu">
+                    <li class="nav-item {{ 'active' if active_tab == 'stress-test' else '' }}">
+                        <a href="/stress-test?case_id={{ case_id }}" class="nav-link">
+                            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                <path d="M12 8v4"></path>
+                                <path d="M12 16h.01"></path>
+                            </svg>
+                            <span>Conclusion Stress Tester</span>
+                        </a>
+                    </li>
+                    <li class="nav-item {{ 'active' if active_tab == 'time-machine' else '' }}">
+                        <a href="/time-machine?case_id={{ case_id }}" class="nav-link">
+                            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 8 14"></polyline>
+                                <path d="M3 12a9 9 0 0 1 15.5-6.3"></path>
+                            </svg>
+                            <span>Investigation Time Machine</span>
+                        </a>
+                    </li>
+                    <li class="nav-item {{ 'active' if active_tab == 'copilot' else '' }}">
+                        <a href="/copilot?case_id={{ case_id }}" class="nav-link">
+                            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"></path>
+                                <path d="M16 11v2a4 4 0 0 1-8 0v-2"></path>
+                                <circle cx="9" cy="18" r="1"></circle>
+                                <circle cx="15" cy="18" r="1"></circle>
+                                <path d="M10 22h4"></path>
+                            </svg>
+                            <span>AI Copilot 🤖</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Group 4: Case Dossier & System Settings -->
+                <span class="nav-section-title">DOSSIER & SYSTEM</span>
+                <ul class="nav-menu">
+                    <li class="nav-item {{ 'active' if active_tab == 'investigate' else '' }}">
+                        <a href="/investigate?case_id={{ case_id }}" class="nav-link">
+                            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            <span>Investigator Notes</span>
+                        </a>
+                    </li>
+                    <li class="nav-item {{ 'active' if active_tab == 'report' else '' }}">
+                        <a href="/report?case_id={{ case_id }}" class="nav-link">
+                            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                            <span>Investigation Report</span>
+                        </a>
+                    </li>
+                    <li class="nav-item {{ 'active' if active_tab == 'settings' else '' }}">
+                        <a href="/settings?case_id={{ case_id }}" class="nav-link">
+                            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                            </svg>
+                            <span>Case Settings</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
 
             <!-- Investigation Disclaimers & Integrity Footnote -->
             <div class="sidebar-footer">
@@ -208,6 +252,26 @@
     <script>
         window.CURRENT_CASE_ID = "{{ case_id or 'CASE-001' }}";
         
+        // Mobile Sidebar Drawer Toggle
+        const mobileToggleBtn = document.getElementById('btnMobileNavToggle');
+        const sidebar = document.getElementById('dtmSidebar');
+        const backdrop = document.getElementById('sidebarBackdrop');
+
+        function toggleSidebar(open) {
+            if (!sidebar || !backdrop) return;
+            const isOpen = open !== undefined ? open : !sidebar.classList.contains('mobile-open');
+            sidebar.classList.toggle('mobile-open', isOpen);
+            backdrop.classList.toggle('active', isOpen);
+            document.body.style.overflow = isOpen ? 'hidden' : '';
+        }
+
+        if (mobileToggleBtn) {
+            mobileToggleBtn.addEventListener('click', () => toggleSidebar());
+        }
+        if (backdrop) {
+            backdrop.addEventListener('click', () => toggleSidebar(false));
+        }
+
         // Global Load Demo Case Handler
         const demoBtn = document.getElementById('loadDemoBtn');
         if (demoBtn) {
@@ -272,5 +336,6 @@
         };
     </script>
     {% block scripts %}{% endblock %}
+    {% block extra_scripts %}{% endblock %}
 </body>
 </html>

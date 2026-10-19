@@ -54,6 +54,9 @@ digital-time-machine/
 │   ├── investigator.py         # Forensic inquiry Q&A engine
 │   ├── evidence_dna.py         # Deep forensic lineage & facts vs inferences
 │   ├── stress_tester.py        # Conclusion stress tester & adversarial validator
+│   ├── snapshot_service.py     # Investigation Time Machine snapshots & diff engine
+│   ├── ai_provider.py          # Configurable AI provider adapter (OpenAI SDK + HTTP fallback)
+│   ├── copilot_engine.py       # Grounded prompt builder, injection defense & citation validator
 │   └── report_generator.py     # Investigation dossier & report compiler
 ├── parsers/
 │   ├── __init__.py
@@ -83,6 +86,7 @@ digital-time-machine/
 │   ├── investigate.html
 │   ├── stress_test.html        # Conclusion Stress Tester workspace
 │   ├── time_machine.html       # Investigation Time Machine comparator
+│   ├── copilot.html            # Evidence-Grounded AI Investigation Copilot
 │   ├── report.html
 │   └── settings.html
 ├── static/
@@ -96,8 +100,9 @@ digital-time-machine/
 │       ├── investigate.js      # Inquiry evaluator & notes journal
 │       ├── evidence_dna.js     # Evidence DNA modal & gap viewer
 │       ├── stress_test.js      # Stress test evaluator & custom hypothesis runner
-│       └── time_machine.js     # Snapshot capture & comparative evolution renderer
-└── tests/                      # Automated test suite (84 tests)
+│       ├── time_machine.js     # Snapshot capture & comparative evolution renderer
+│       └── copilot.js          # AI Copilot chat, citations & rate limit handling
+└── tests/                      # Automated test suite (100 tests, 0 failures)
     ├── __init__.py
     ├── test_normalizer.py
     ├── test_parsers.py
@@ -248,5 +253,43 @@ The **Investigation Time Machine** provides meta-historical tracking for the inv
 - `POST /api/snapshots`: Captures a new immutable snapshot.
 - `GET /api/snapshots/<snapshot_id>`: Retrieves full snapshot state and verifies SHA-256 integrity.
 - `GET /api/snapshots/compare?case_id=...&snapshot_a_id=...&snapshot_b_id=...`: Performs deep side-by-side comparison.
+
+---
+
+## 11. Feature 3: Evidence-Grounded AI Investigation Copilot (`/copilot`)
+
+The **Evidence-Grounded AI Investigation Copilot** provides real conversational intelligence for digital forensics examiners while maintaining zero tolerance for hallucinations, prompt injections, or unsubstantiated conclusions.
+
+### Architecture & Grounding Principles
+1. **Zero Secret Exposure:** API keys are never exposed to browser frontends, HTML source, logs, or API responses. They remain strictly in server-side environment variables (`OPENAI_API_KEY`).
+2. **Offline-Capable Adapter Architecture:** Built on `BaseAIProvider` with `OpenAIProvider`. Attempts the official `openai` SDK if installed and seamlessly falls back to standard Python standard library `urllib.request`. The entire system and test suite operate 100% offline without mandatory pip dependencies or external network calls.
+3. **Bounded Parameterized Retrieval:** Queries are strictly bounded to the active `case_id`, retrieving up to 20 chronological telemetry events, correlation findings, ghost evidence coverage gaps, and snapshot diffs. Arbitrary SQL execution or database modifications from the Copilot are completely prohibited.
+4. **Adversarial Prompt-Injection Defense:** All retrieved telemetry is treated as untrusted, passive forensic data wrapped inside explicit `<evidence_dataset>` XML boundaries. Any instructions contained within logs or file names (e.g. *"ignore previous instructions"*, *"reveal secrets"*) are treated as malicious artifact text rather than executive prompt commands. Control characters and XML tag escapes are sanitized server-side.
+5. **Strict Forensic Grounding Rules:**
+   - **Scenario D USB Copy Restraint:** Device connection proximate to file access does not prove a file was transferred. The Copilot explicitly notes missing volume write records.
+   - **Distinguishing Facts from Inferences:** Clearly differentiates observed telemetry logs from algorithmic deductions or hypotheses.
+   - **Missing Evidence as Unknown:** Unrecorded telemetry is treated as *unknown*, never as proof an action did not occur.
+   - **No Intent Attribution:** Never invents or assumes malicious intent without direct forensic evidence.
+6. **Server-Side Python Citation Validation:**
+   - Every factual claim must cite an event ID in brackets (e.g. `[EVT-010]`).
+   - Python extracts citations via regex and verifies each cited ID against actual database records retrieved for that case.
+   - Valid citations are enriched with timestamps, actor, object, and clickable links to `/timeline` and `/evidence`.
+   - Hallucinated event IDs (e.g. `[EVT-999]`) are intercepted server-side and sanitized to `[Unverified Ref: EVT-999]`, preventing broken links.
+
+### Environment Configuration & Render Deployment
+Configure the following environment variables in local development (`.env`) or on your hosting provider (Render, Railway, Fly.io):
+
+| Variable | Default | Description |
+| :--- | :--- | :--- |
+| `OPENAI_API_KEY` | *(None)* | Secret API key for OpenAI Copilot. If omitted, app operates normally and Copilot reports unconfigured status. |
+| `OPENAI_MODEL` | `gpt-4o-mini` | Model identifier (e.g. `gpt-4o-mini`, `gpt-4o`, `gpt-3.5-turbo`). |
+| `AI_REQUEST_TIMEOUT`| `25` | Server-side timeout in seconds for upstream AI completion calls. |
+| `AI_MAX_OUTPUT_TOKENS` | `1024` | Maximum token ceiling for model generation. |
+
+### REST API Endpoints:
+- `GET /copilot?case_id=...`: Interactive Copilot investigator chat UI.
+- `GET /api/copilot/status`: Returns provider availability without leaking credentials.
+- `POST /api/copilot/chat`: Submits forensic question with recent chat context, returns grounded answer and validated citations.
+
 
 

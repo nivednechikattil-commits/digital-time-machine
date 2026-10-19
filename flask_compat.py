@@ -323,7 +323,7 @@ class TestClient:
     def __init__(self, app: Flask):
         self.app = app
 
-    def _request(self, method, path, data=None, json_data=None, query_string=None, headers=None):
+    def _request(self, method, path, data=None, json_data=None, query_string=None, headers=None, environ_base=None, **kwargs):
         if "?" in path:
             path_part, qs_part = path.split("?", 1)
             path = path_part
@@ -337,6 +337,8 @@ class TestClient:
             "CONTENT_LENGTH": "0",
             "CONTENT_TYPE": "text/plain"
         }
+        if environ_base:
+            environ.update(environ_base)
         headers = headers or {}
         
         body = b""
